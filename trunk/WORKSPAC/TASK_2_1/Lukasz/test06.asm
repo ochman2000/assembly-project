@@ -187,7 +187,7 @@ ZmienOCW2	MACRO	priorytet
 
 ; MACRO WYWOŁUJĄCE FUNKCJĘ SYSTEMOWĄ 4C00h
 
-Koniec_M	MACRO
+Koniec	MACRO
 
 	mov	ax, 4C00h
 	int	21h
@@ -238,9 +238,9 @@ MojaProcZeg	PROC FAR
 	mov bx, 0B800h 					; B800 - ADRES POCZĄTKU EKRANU
    	mov es, bx
 		
-	cmp kierunek, 0					; 0 - PRZÓD
-	je do_przodu
-	jmp do_tylu
+	cmp kierunek, 0
+	je do_przodu					; TRUE  - PRZÓD
+	jmp do_tylu						; FALSE - WSTECZ
 		
 do_przodu:
 	mov si, poz						; SI=0,2,4,6,8,...
@@ -291,7 +291,6 @@ koniec_procedury:
 	
 MojaProcZeg ENDP
 
-
 Start:
 	Ustaw_DS Dane
 	Wyczysc_ekran
@@ -321,7 +320,7 @@ Start:
 	; KLAWISZ 5
 	WczytajZnak
 	WysNap txtWcisnieto5
-	Koniec_M
+	Koniec
 
 Kod            ENDS
 
