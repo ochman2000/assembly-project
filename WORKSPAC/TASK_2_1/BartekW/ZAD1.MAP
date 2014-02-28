@@ -1,0 +1,11 @@
+
+ Start  Stop   Length Name               Class
+
+ 00000H 00000H 00000H _TEXT              CODE
+ 00000H 00000H 00000H _DATA              DATA
+ 00000H 000B4H 000B5H DANE               
+ 000C0H 0026AH 001ABH KOD                
+ 00270H 0036FH 00100H STOSIK             
+
+Program entry point at 000C:0092
+

@@ -1,0 +1,81 @@
+CRL		EQU	13, 10	; znak nowej linii
+
+WezWektor MACRO numer_przerw, adres
+
+		;makro zapamietuje wektor przerwania "numer_przerwania" do zmiennej "adres"
+		;funkcja 35h przerwania 21h zwraca odczytany z tablicy wektorow do ES:BX
+		;UWAGA
+		;DOS rejestruje zmiany na tablicy wektorow, nie wskazane jest wiec operowanie na niej bezposrednio
+		
+		mov	ah, 35h			    ; odczyt przewrania - pobiera aktualny wektor 
+		mov	al, numer_przerw	; przerwania 
+		int	21h
+		mov	WORD PTR adres, bx	; es:bx -32bit adres przerwania - zapamietaj aktualny wektor
+		mov	WORD PTR adres+2, es	; przerwania 
+
+		ENDM
+
+;=============================================
+		
+UstWektor MACRO numer_przerw, procedura
+
+		;makro ustawia "procedura" jako aktualna procedura obslugi przerwania o numerze "numer_przerw"
+		;funkcja 25h przerwania 21h umieszcza w tablicy wektorow adres do podanej procedury
+		;UWAGA
+		;DOS rejestruje zmiany na tablicy wektorow, nie wskazane jest wiec operowanie na niej bezposrednio
+		
+		push ds
+		mov	dx, OFFSET procedura
+		mov	ax, cs
+		mov	ds, ax
+		mov	ah, 25h			; Ustawienie wektora przerwania na ds:dx
+		mov	al, numer_przerw	
+		int	21h
+		pop	ds
+
+		ENDM
+
+;=============================================
+		
+PrzywrocWektor MACRO numer_przerw, wektor
+
+		;makro przywraca stary "wektor" do tablicy wektorow na pozycje "numer_przerw"
+		;funkcja 25h przerwania 21h umieszcza w tablicy wektorow adres do podanej procedury
+		;UWAGA
+		;DOS rejestruje zmiany na tablicy wektorow, nie wskazane jest wiec operowanie na niej bezposrednio
+
+		push ds
+		mov	bx, WORD PTR wektor+2
+		mov	dx, WORD PTR wektor
+		mov	ds, bx
+		mov	ah, 25h
+		mov	al, numer_przerw
+		int	21h
+		pop	ds
+	
+		ENDM
+
+;=============================================
+
+WyswietlZnakBios MACRO Znak
+		
+		;wyswietlenie znaku na ekranie przerwaniem BIOS
+		
+		mov	ah, 0Eh
+		mov	al, Znak
+		mov	bh, 0
+		int	10h
+
+		ENDM
+
+;=============================================
+
+DrukujNapis MACRO Napis
+
+		;macro wyswietla Napis na ekranie
+
+		mov 	dx, OFFSET Napis
+		mov 	ah, 09h
+		int 	21h
+
+		ENDM
