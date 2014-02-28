@@ -1,12 +1,12 @@
-;=============================================================================;
-;                                                                             ;
-; Plik           	: test05.asm                                                   ;
-; Format         	: EXE                                                        ;
+;===============================================================;
+;
+; Plik           	: test06.asm
+; Format         	: EXE
 ; Cwiczenie			: Zmiana częstotliwości zegara
 ; Autor				: Łukasz Ochmański
-; Data zaliczenia	: 25.01.2014                                                 ;
-;                                                                             ;
-;=============================================================================;
+; Data zaliczenia	: 25.01.2014
+;
+;===============================================================;
 		
 	.MODEL	SMALL
 
@@ -23,6 +23,9 @@ WysNap	MACRO	Napis
 	ENDM
 	
 ;===============================================================;
+
+; MACRO ZERUJĄCE WSZYSTKIE BAJTY W OBSZARZE PAMIĘCI OPERACYJNEJ
+; ODPOWIEDZIALNEJ ZA PRZECHOWYWANIE ZAWARTOŚCI EKRANU
 
 Wyczysc_ekran MACRO
 
@@ -46,7 +49,7 @@ WczytajZnak     MACRO
 	
 	ENDM
 	
-;===============================================================;		
+;===============================================================;
 
 ; MACRO DO USTAWIANIA SEGMENTU DS
 
@@ -60,7 +63,8 @@ Ustaw_DS MACRO adres
 ;===============================================================;
 
 ; MACRO ZWRACAJĄCE ADRES PROCEDURY ODPOWIEDZIALNEJ ZA
-; KONTROLĘ UKŁADU CZASOWEGO RTC (PIT INTEL 8253/8254)
+; KONTROLĘ URZĄDZENIA NA KANALE IRQ 8
+; W TYM PRZYPADKU JEST TO UKŁAD CZASOWY RTC INTEL 8253/8254
 
 Znajdz_przerwanie_zegara MACRO
 	
@@ -75,7 +79,7 @@ Znajdz_przerwanie_zegara MACRO
 	
 ;===============================================================;
 
-; MACRO ZAPISUJĄCE ADRES PROCEDURY
+; MACRO ZAPISUJĄCE W PAMIĘCI OPERACYJNEJ ADRES PROCEDURY
 ; ZWRÓCONEJ PRZEZ FUNKCJĘ SYSTEMOWĄ 35h
 
 Zapisz_przerwanie_zegara MACRO
@@ -100,42 +104,44 @@ Podmien_adres_procedury MACRO
 	;	* AL = INTERRUPT NUMBER
 	;	* DS:DX -> NEW INTERRUPT HANDLER
 
-	lea dx, MojaProcZeg	; USTAW PARAMETR DX
-	Ustaw_DS Kod		; USTAW PARAMETR DS
-	mov ah, 25h			; USTAW PARAMETR AH
-	mov al, 08h			; USTAW PARAMETR AL
+	lea dx, MojaProcZeg		; USTAW PARAMETR DX
+	Ustaw_DS Kod			; USTAW PARAMETR DS
+	mov ah, 25h				; USTAW PARAMETR AH
+	mov al, 08h				; USTAW PARAMETR AL
 	int 21h
 	
-	pop ds				; PRZYWRÓĆ PIERWOTNĄ WARTOŚĆ DS
+	pop ds					; PRZYWRÓĆ PIERWOTNĄ WARTOŚĆ DS
 	
 	ENDM
 
 ;===============================================================;
 
-; MACRO KONFIGURUJĄCE ZEGAR RTC POPRZEZ PORTY 40h I 43h
+; MACRO ZMIENIAJĄCE CZĘSTOTLIWOŚĆ GENEROWANIA PRZERWANIA ZEGAROWEGO
+; UKŁADU CZASOWEGO RTC (INTEL 8253/8254) POPRZEZ PORTY 40h I 43h
 
 Przyspiesz_zegar MACRO
 	
 	cli
-	mov	al, 36h			;al=00110110
-	out	43h, al			;wyślij 00110110 na port 43h
+	mov	al, 36h				;al=00110110
+	out	43h, al
 	mov	ax, Czestotliwosc
-	out	40h, al			;wyślij młodszy bajt wartości początkowej
-	mov	al, ah			;wyślij starszy bajt (128) wartości początkowej
-	out	40h, al			;do licznika 0
+	out	40h, al				;wyślij młodszy bajt wartości początkowej ax
+	mov	al, ah			
+	out	40h, al				;wyślij starszy bajt wartości początkowej ax
 	sti
 	
 	ENDM
 	
 ;===============================================================;
 
-; MACRO KONFIGURUJĄCE ZEGAR RTC POPRZEZ PORTY 40h I 43h
+; MACRO ZMIENIAJĄCE CZĘSTOTLIWOŚĆ GENEROWANIA PRZERWANIA ZEGAROWEGO
+; UKŁADU CZASOWEGO RTC (INTEL 8253/8254) POPRZEZ PORTY 40h I 43h
 
 Spowolnij_zegar MACRO
 
 	cli
-	mov	al, 36h			;al=00110110
-	out	43h, al			;wyślij 00110110 na port 43h
+	mov	al, 36h				;al=00110110
+	out	43h, al	
 	mov	ax, 0
 	out	40h, al	
 	out	40h, al
@@ -151,8 +157,8 @@ Spowolnij_zegar MACRO
 Przywroc_wektor MACRO
 
 	push ds
-	mov	ah, 25h			;odtwórz oryginalny wektor
-	mov	al, 08h			;przerwania zegara
+	mov	ah, 25h			
+	mov	al, 08h				; IRQ 8
 	lds	dx, OrgProcZeg
 	int	21h
 	pop ds
@@ -166,10 +172,10 @@ Przywroc_wektor MACRO
 
 ZmienOCW2	MACRO	priorytet
 		
-	cli				; CLEAR INTERRUPT FLAG
+	cli						; CLEAR INTERRUPT FLAG
 	mov	al, priorytet
 	out	20h, al;
-	sti 			; SET INTERRUPT FLAG
+	sti 					; SET INTERRUPT FLAG
 	
 	ENDM
 
@@ -190,15 +196,21 @@ Koniec_M	MACRO
 	
 ;===============================================================;
 
+Stosik	SEGMENT	STACK
+
+	DB 100h DUP (?)
+
+Stosik	ENDS
+
 ;===============================================================;
 				
 Dane	SEGMENT
 
 	Czestotliwosc	EQU	8000h 	;32768
-	OrgProcZeg 		dd	?		;tablica do przechowania dotychczasowej procedury
-	poz				dw	40		;pozycja
-	przes			dw	0002h	;przesunięcie
-	kierunek		db	0		;0-przód; 1-wstecz
+	OrgProcZeg 		dd	?		;OBSZAR PRZEZNACZONY NA PRZECHOWANIE PROCEDURY
+	poz				dw	40		;POZYCJA PORUSZAJĄCEJ SIĘ GWIAZDKI
+	przes			dw	0002h	;PRZESUNIĘCIE PORUSZAJĄCEJ SIĘ GWIAZDKI
+	kierunek		db	0		;KIERUNEK RUCHU GWIAZDKI (0-PRZÓD; 1-WSTECZ)
 	txtWcisnieto1	DB " Procedura obs",136,"ugi kana",136,"u IRQ 8 zmodyfikowana", 13, 10, "$"
 	txtWcisnieto2	DB " Uk",136,"ad czasowy RTC przyspieszony" ,13,10, "$"
 	txtWcisnieto3	DB " Uk",136,"ad czasowy RTC spowolniony" ,13,10, "$"
@@ -221,35 +233,35 @@ MojaProcZeg	PROC FAR
 	push si
 	push ax
 
-	Ustaw_DS Dane		; ustawiamy segment danych
+	Ustaw_DS Dane
 
-	mov bx, 0B800h 		; do bx początek ekranu (pierwszy kwadracik ekranu)
-   	mov es, bx			; do es wpisujemy adres ekranu
+	mov bx, 0B800h 					; B800 - ADRES POCZĄTKU EKRANU
+   	mov es, bx
 		
-	cmp kierunek, 0
+	cmp kierunek, 0					; 0 - PRZÓD
 	je do_przodu
 	jmp do_tylu
 		
 do_przodu:
-	mov si, poz					; si=0,2,4,6,8,...
-	cmp poz, 120				; czy nie jest na końcu 
+	mov si, poz						; SI=0,2,4,6,8,...
+	cmp poz, 120					; SPRAWDŹ CZY NIE JEST NA KOŃCU
 	je odwroc_do_tylu
 	mov BYTE PTR es:[si-2], ' '
-	mov BYTE PTR es:[si-1], 00000000B
-	mov BYTE PTR es:[si], 15	; 15='*' w tablicy ASCII
-	mov BYTE PTR es:[si+1], 1Eh	; zółta litera na niebieskim tle
-	mov bx, przes				; pozycja+2
+	mov BYTE PTR es:[si-1], 00h
+	mov BYTE PTR es:[si], 15		; 15='*' W TABLICY ASCII
+	mov BYTE PTR es:[si+1], 1Eh		; ŻÓŁTA LITERA NA NIEBIESKIM TLE
+	mov bx, przes					; POZYCJA=POZYCJA+2
 	add poz, bx
 	jmp koniec_procedury
 
 do_tylu:
-	mov si, poz			; si=120,118,116,...
-	cmp poz, 40			; czy nie jest na początku
+	mov si, poz						; SI=120,118,116,...
+	cmp poz, 40						; SPRAWDŹ CZY NIE JEST NA POCZĄTKU
 	je odwroc_do_przodu
 	mov BYTE PTR es:[si+2], ' '
-	mov BYTE PTR es:[si+3], 00000000B
-	mov BYTE PTR es:[si], 15	; 15='*' w tablicy ASCII
-	mov BYTE PTR es:[si+1], 1Eh	; zółta litera na niebieskim tle
+	mov BYTE PTR es:[si+3], 00h
+	mov BYTE PTR es:[si], 15
+	mov BYTE PTR es:[si+1], 1Eh
 	mov bx, przes
 	sub poz, bx
 	jmp koniec_procedury
@@ -312,14 +324,6 @@ Start:
 	Koniec_M
 
 Kod            ENDS
-
-;===============================================================;
-
-Stosik         SEGMENT     STACK
-
-	DB 100h DUP (?)
-
-Stosik         ENDS
 
 ;===============================================================;
 
