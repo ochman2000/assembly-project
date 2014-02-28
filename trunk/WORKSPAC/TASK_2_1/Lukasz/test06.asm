@@ -8,9 +8,13 @@
 ;                                                                             ;
 ;=============================================================================;
 		
-		.MODEL	SMALL
+	.MODEL	SMALL
 
-WysNap	MACRO	Napis ;<-Makro do wyswietlania napisów
+;===============================================================;
+
+; MACRO DO WYŚWIETLANIA NAPISÓW
+
+WysNap	MACRO	Napis
 
 	mov 	dx, offset Napis
 	mov 	ah, 09h
@@ -20,36 +24,16 @@ WysNap	MACRO	Napis ;<-Makro do wyswietlania napisów
 	
 ;===============================================================;
 
-Koniec_M	MACRO ;<- makro końca programu
-
-	mov	ax, 4C00h
-	int	21h
-	
-	ENDM
-	
-;===============================================================;
-
-ZmienOCW2	MACRO	priorytet
-		
-	cli		; CLEAR INTERRUPT FLAG
-	mov	al, priorytet
-	out	20h, al;
-	sti 	; SET INTERRUPT FLAG
-	
-	ENDM
-
-;===============================================================;
-
 Wyczysc_ekran MACRO
 
-	mov ax,0B800h	; ADRES POCZĄTKU EKRANU
+	mov ax,0B800h			; ADRES POCZĄTKU EKRANU
 	mov es,ax 
-	mov cx,25*80	; COUNTER = 25 LINII X 80 ZNAKÓW
-	xor bx,bx 		; BX=0
+	mov cx,25*80			; COUNTER = 25 LINII X 80 ZNAKÓW
+	xor bx,bx 				; BX=0
 wyczysc: 
 	mov byte ptr es:[bx],0	; USTAW WSZYSTKIE BAJTY = 0
 	add bx,2 				; BX++
-	loop wyczysc			; URUCHOM 2000 RAZY
+	loop wyczysc			; URUCHOM PĘTLĘ 2000 RAZY
 		
 	ENDM
 		
@@ -64,6 +48,8 @@ WczytajZnak     MACRO
 	
 ;===============================================================;		
 
+; MACRO DO USTAWIANIA SEGMENTU DS
+
 Ustaw_DS MACRO adres
 	
 	mov ax, SEG adres
@@ -73,18 +59,24 @@ Ustaw_DS MACRO adres
 	
 ;===============================================================;
 
+; MACRO ZWRACAJĄCE ADRES PROCEDURY ODPOWIEDZIALNEJ ZA
+; KONTROLĘ UKŁADU CZASOWEGO RTC (PIT INTEL 8253/8254)
+
 Znajdz_przerwanie_zegara MACRO
 	
 	; AH=35h - GET INTERRUPT VECTOR
 	; ENTRY: AL = INTERRUPT NUMBER
 	; RETURN: ES:BX -> CURRENT INTERRUPT HANDLER
 	mov ah, 35h	
-	mov al, 08h
+	mov al, 08h ; IRQ 8
 	int 21h
 	
 	ENDM
 	
 ;===============================================================;
+
+; MACRO ZAPISUJĄCE ADRES PROCEDURY
+; ZWRÓCONEJ PRZEZ FUNKCJĘ SYSTEMOWĄ 35h
 
 Zapisz_przerwanie_zegara MACRO
 	
@@ -96,8 +88,11 @@ Zapisz_przerwanie_zegara MACRO
 	
 ;===============================================================;
 
-Podmien_adres_procedury MACRO
+; MACRO WYWOŁUJĄCE FUNKCJĘ SYSTEMOWĄ 25h, SŁUŻĄCĄ DO
+; MODYFIKACJI ADRESÓW PROCEDUR W WEKTORZE PRZERWAŃ
 
+Podmien_adres_procedury MACRO
+	
 	push ds
 	
 	; AH=25h - SET INTERRUPT VECTOR
@@ -117,6 +112,82 @@ Podmien_adres_procedury MACRO
 
 ;===============================================================;
 
+; MACRO KONFIGURUJĄCE ZEGAR RTC POPRZEZ PORTY 40h I 43h
+
+Przyspiesz_zegar MACRO
+	
+	cli
+	mov	al, 36h			;al=00110110
+	out	43h, al			;wyślij 00110110 na port 43h
+	mov	ax, Czestotliwosc
+	out	40h, al			;wyślij młodszy bajt wartości początkowej
+	mov	al, ah			;wyślij starszy bajt (128) wartości początkowej
+	out	40h, al			;do licznika 0
+	sti
+	
+	ENDM
+	
+;===============================================================;
+
+; MACRO KONFIGURUJĄCE ZEGAR RTC POPRZEZ PORTY 40h I 43h
+
+Spowolnij_zegar MACRO
+
+	cli
+	mov	al, 36h			;al=00110110
+	out	43h, al			;wyślij 00110110 na port 43h
+	mov	ax, 0
+	out	40h, al	
+	out	40h, al
+	sti
+	
+	ENDM
+
+;===============================================================;
+
+; MACRO WYWOŁUJĄCE FUNKCJĘ SYSTEMOWĄ 25h, SŁUŻĄCĄ DO
+; MODYFIKACJI ADRESÓW PROCEDUR W WEKTORZE PRZERWAŃ
+
+Przywroc_wektor MACRO
+
+	push ds
+	mov	ah, 25h			;odtwórz oryginalny wektor
+	mov	al, 08h			;przerwania zegara
+	lds	dx, OrgProcZeg
+	int	21h
+	pop ds
+	
+	ENDM
+
+;===============================================================;
+
+; MACRO KONFIGURUJĄCE STEROWNIK PRZERWAŃ PIC (INTEL 8259A)
+; PRZESYŁA OPERACYJNE SŁOWO ROZKAZOWE OCW2
+
+ZmienOCW2	MACRO	priorytet
+		
+	cli				; CLEAR INTERRUPT FLAG
+	mov	al, priorytet
+	out	20h, al;
+	sti 			; SET INTERRUPT FLAG
+	
+	ENDM
+
+;===============================================================;
+
+;===============================================================;
+
+;===============================================================;
+
+; MACRO WYWOŁUJĄCE FUNKCJĘ SYSTEMOWĄ 4C00h
+
+Koniec_M	MACRO
+
+	mov	ax, 4C00h
+	int	21h
+	
+	ENDM
+	
 ;===============================================================;
 
 ;===============================================================;
@@ -128,10 +199,11 @@ Dane	SEGMENT
 	poz				dw	40		;pozycja
 	przes			dw	0002h	;przesunięcie
 	kierunek		db	0		;0-przód; 1-wstecz
-	txtWcisnieto1	DB "Zegar przyspieszony" ,13,10, "$"
-	txtWcisnieto2	DB "Zegar spowolniony" ,13,10, "$"
-	txtWcisnieto3	DB "Pierwotna procedura przywr",162,"cona" ,13,10, "$"
-	txtWcisnieto4	DB 13,10,"Do widzenia!" ,13,10, "$"
+	txtWcisnieto1	DB " Procedura obs",136,"ugi kana",136,"u IRQ 8 zmodyfikowana", 13, 10, "$"
+	txtWcisnieto2	DB " Uk",136,"ad czasowy RTC przyspieszony" ,13,10, "$"
+	txtWcisnieto3	DB " Uk",136,"ad czasowy RTC spowolniony" ,13,10, "$"
+	txtWcisnieto4	DB " Pierwotna procedura obs",136,"ugi kana",136,"u IRQ 8 przywr",162,"cona" ,13,10, "$"
+	txtWcisnieto5	DB 13,10," Do widzenia!" ,13,10, "$"
 
 Dane	ENDS
 
@@ -213,63 +285,30 @@ Start:
 	Wyczysc_ekran
 	Znajdz_przerwanie_zegara
 	Zapisz_przerwanie_zegara
-	Podmien_adres_procedury
-	;PRZERWANIE PRZEJĘTE!!!
-		
-	; WCIŚNIĘCIE DOWOLNEGO KLAWISZA POWODUJE
-	; PRZYSPIESZENIE ZEGARA (ZA WYJĄTKIEM ESC)
-klawisz1:
+
+	; KLAWISZ 1
 	WczytajZnak
-	cmp al, 1Bh		; JEŻELI ESC, GO TO klawisz1
-	je klawisz1		; ELSE PRZESTAW ZEGAR
 	WysNap txtWcisnieto1
-	
-	mov	al, 36h		;al=00110110
-	out	43h, al		;wyślij 00110110 na port 43h
-	mov	ax, Czestotliwosc
-	out	40h, al		;wyślij młodszy bajt wartości początkowej
-	mov	al, ah		;wyślij starszy bajt (128) wartości początkowej
-	out	40h, al		;do licznika 0
-
-	; WCIŚNIĘCIE DOWOLNEGO KLAWISZA POWODUJE
-	; SPOWOLNIENIE ZEGARA (ZA WYJĄTKIEM ESC)	
-klawisz2:
+	Podmien_adres_procedury
+		
+	; KLAWISZ 2
 	WczytajZnak
-	cmp al, 1Bh
-	je klawisz2
 	WysNap txtWcisnieto2
+	Przyspiesz_zegar
 
-	mov	al, 36h		;al=00110110
-	out	43h, al		;wyślij 00110110 na port 43h
-	mov	al, 0
-	out	40h, al	
-	out	40h, al	
-
-	; WCIŚNIĘCIE DOWOLNEGO KLAWISZA POWODUJE
-	; ODTWORZENIE DOMYŚLNEJ PROCEDURY ZEGARA (ZA WYJĄTKIEM ESC)
-klawisz3:
+	; KLAWISZ 3
 	WczytajZnak
-	cmp al, 1Bh
-	je klawisz3
 	WysNap txtWcisnieto3
+	Spowolnij_zegar
 
-	cli
-	push ds
-	mov	ah, 25h			;odtwórz oryginalny wektor
-	mov	al, 08h			;przerwania zegara
-	lds	dx, OrgProcZeg
-	int	21h
-	pop ds
-	sti
-	
-	; WCIŚNIĘCIE DOWOLNEGO KLAWISZA POWODUJE
-	; ZAKOŃCZENIE PROGRAMU (ZA WYJĄTKIEM ESC)
-klawisz4:
+	; KLAWISZ 4
 	WczytajZnak
-	cmp al, 1Bh
-	je klawisz4
 	WysNap txtWcisnieto4
+	Przywroc_Wektor
 	
+	; KLAWISZ 5
+	WczytajZnak
+	WysNap txtWcisnieto5
 	Koniec_M
 
 Kod            ENDS
