@@ -1,0 +1,5 @@
+TASM/zi program.asm
+TLINK/v program.obj
+Powsta³y w taki sposób gotowy do wykonania program jest bogatszy od programu uzyskanego bez u¿ycia wymienionych opcji o wiele symboli potrzebnych Turbo Debuggerowi do jego analizy.
+
+http://www.cs.binghamton.edu/~reckert/220/wk3a-s06.htm
