@@ -16,9 +16,9 @@
 
 WysNap MACRO Napis
 
-	mov 	dx, offset Napis
-	mov 	ah, 09h
-	int 	21h
+	mov dx, offset Napis
+	mov ah, 09h
+	int 21h
 	
 	ENDM
 	
@@ -28,7 +28,6 @@ WysNap MACRO Napis
 ; ODPOWIEDZIALNEJ ZA PRZECHOWYWANIE ZAWARTOŚCI EKRANU
 Wyczysc_ekran MACRO
 LOCAL wyczysc
-
 	mov ax,0B800h			; ADRES POCZĄTKU EKRANU
 	mov es,ax 
 	mov cx,25*80			; COUNTER = 25 LINII X 80 ZNAKÓW
@@ -44,8 +43,8 @@ wyczysc:
 
 WczytajZnak MACRO
     
-	mov     ah, 08h
-	int     21h
+	mov ah, 08h
+	int 21h
 	
 	ENDM
 	
@@ -53,7 +52,7 @@ WczytajZnak MACRO
 
 ; MACRO DO USTAWIANIA SEGMENTU DS
 
-Ustaw_DS MACRO adres
+Ustaw_rejestr_ds MACRO adres
 	
 	mov ax, SEG adres
 	mov ds, ax
@@ -105,7 +104,7 @@ Podmien_adres_procedury MACRO
 	;	* DS:DX -> NEW INTERRUPT HANDLER
 
 	lea dx, MojaProcZeg		; USTAW PARAMETR DX
-	Ustaw_DS Kod			; USTAW PARAMETR DS
+	Ustaw_rejestr_ds Kod			; USTAW PARAMETR DS
 	mov ah, 25h				; USTAW PARAMETR AH
 	mov al, 08h				; USTAW PARAMETR AL
 	int 21h
@@ -119,12 +118,12 @@ Podmien_adres_procedury MACRO
 ; MACRO ZMIENIAJĄCE CZĘSTOTLIWOŚĆ GENEROWANIA PRZERWANIA ZEGAROWEGO
 ; UKŁADU CZASOWEGO RTC (INTEL 8253/8254) POPRZEZ PORTY 40h I 43h
 
-Ustaw_zegar MACRO ms
+Ustaw_zegar MACRO tempo
 
 	cli
 	mov	al, 36h				; AL=00110110
 	out	43h, al	
-	mov	ax, ms				
+	mov	ax, tempo				
 	out	40h, al				; WYŚLIJ MŁODSZY BAJT AX (AL)
 	mov	al, ah	
 	out	40h, al				; WYŚLIJ STARSZY BAJT AX (AH)
@@ -188,9 +187,12 @@ Stosik ENDS
 ;===============================================================;
 				
 Dane SEGMENT
-
+	
+	; CONSTANTS
 	szybko			EQU	8000h 	; 65536/32768
 	wolno			EQU	0000h 	; 0
+	
+	; GLOBAL VARIABLES
 	czestotliwosc	dw	0000h
 	OrgProcZeg 		dd	?		; OBSZAR PRZEZNACZONY NA PRZECHOWANIE
 								; PROCEDURY
@@ -222,8 +224,10 @@ MojaProcZeg	PROC FAR
 	push si
 	push ax
 
-	Ustaw_DS Dane
-	Ustaw_zegar czestotliwosc
+	Ustaw_rejestr_ds Dane
+	Ustaw_zegar	czestotliwosc;		; USTAW CZĘSTOTLIWOŚĆ ZEGARA
+									; UŻYWAJĄC WARTOŚCI ZMIENNEJ
+									; GLOBALNEJ czestotliwosc
 
 	mov bx, 0B800h 					; B800 - ADRES POCZĄTKU EKRANU
    	mov es, bx
@@ -269,13 +273,22 @@ odwroc_do_tylu:
 	jmp koniec_procedury
 
 koniec_procedury:
-	pushf
 	; ZGODNIE Z WYTYCZNYMI PROJEKTU:
-	; PRZY PRZEJMOWANIU PRZERWANIA NALEŻY ZAPEWNIĆ WYWOŁYWANIE
-	; ORYGINALNEJ PROCEDURY JEGO OBSŁUGI Z PIERWOTNĄ CZĘSTOTLIWOŚCIĄ,
-	; JAKO, ŻE PROCEDURA TA REALIZUJE WAŻNE FUNKCJE SYSTEMOWE I MUSI
-	; BYĆ WYKONYWANA W ŚCISŁYCH ODSTĘPACH CZASU.
-	;Ustaw_zegar wolno
+	; PRZY PRZEJMOWANIU PRZERWANIA NALEŻY ZAPEWNIĆ WYWOŁYWANIE ORYGINALNEJ
+	; PROCEDURY JEGO OBSŁUGI Z PIERWOTNĄ CZĘSTOTLIWOŚCIĄ, JAKO, ŻE PROCEDU- ; RA TA REALIZUJE WAŻNE FUNKCJE SYSTEMOWE I MUSI BYĆ WYKONYWANA W ŚCIS-
+	; ŁYCH ODSTĘPACH CZASU. NIESTETY ODKOMENTOWANIE PONIŻSZEJ LINI SPRAWIA,
+	; ŻE ZGŁASZANIE PRZERWANIA ZEGAROWEGO NASTĘPUJE CO ZALEDWIE 55ms. JEST
+	; TO ZNACZNIEJ MNIEJ NIŻ CZAS WYKONANIA WSZYSTKICH INSTRUKCJI TEGO PRO-
+	; GRAMU. Z TEGO POWODU USTAWIENIE CZĘSTOTLIWOŚCI RTC W POCZĄTKOWEJ CZĘ-
+	; ŚCI KODU JEST NADPISYWANE PRZEZ KOLEJNE INSTRUKCJE. ZATEM POD UWAGĘ 
+	; BRANA JEST TA OSTATNIA INSTRUKCJA, A POPRZEDZAJĄCE SĄ IGNOROWANE.
+	; INNYMI SŁOWY: WSZYSTKIE PRÓBY PRZYSPIESZENIA ZEGARA SĄ NADPISYWANE
+	; PONIŻSZĄ LINIĄ KODU, ZANIM WEJDĄ W ŻYCIE.
+	;Ustaw_zegar wolno 				; USTAW CZĘSTOTLIWOŚĆ ZEGARA
+									; UŻYWAJĄC WARTOŚCI STAŁEJ wolno
+									; Z ZADEKLAROWANĄ WARTOŚCIĄ=0
+	
+	pushf
 	call OrgProcZeg
 
 	pop ax
@@ -288,7 +301,7 @@ koniec_procedury:
 MojaProcZeg ENDP
 
 Start:
-	Ustaw_DS Dane
+	Ustaw_rejestr_ds Dane
 	Wyczysc_ekran
 	WysNap txtPowitanie
 	Znajdz_przerwanie_zegara
