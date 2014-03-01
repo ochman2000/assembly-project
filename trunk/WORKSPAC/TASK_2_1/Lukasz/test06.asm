@@ -26,8 +26,8 @@ WysNap MACRO Napis
 
 ; MACRO ZERUJĄCE WSZYSTKIE BAJTY W OBSZARZE PAMIĘCI OPERACYJNEJ
 ; ODPOWIEDZIALNEJ ZA PRZECHOWYWANIE ZAWARTOŚCI EKRANU
-
 Wyczysc_ekran MACRO
+LOCAL wyczysc
 
 	mov ax,0B800h			; ADRES POCZĄTKU EKRANU
 	mov es,ax 
@@ -203,6 +203,7 @@ Dane SEGMENT
 	txtWcisnieto2	DB 	" Uk",136,"ad czasowy RTC przyspieszony." ,13,10, "$"
 	txtWcisnieto3	DB 	" Uk",136,"ad czasowy RTC spowolniony." ,13,10, "$"
 	txtWcisnieto4	DB 	" Pierwotna procedura obs",136,"ugi kana",136,"u IRQ 8 przywr",162,"cona." ,13,10, "$"
+	txtPrompt5	DB 	13,10," Wci",152,"nij dowolny klawisz, aby zako",228,"czy",134,"...", "$"
 	txtWcisnieto5	DB 	13,10," Do widzenia!" ,13,10, "$"
 
 Dane ENDS
@@ -274,7 +275,7 @@ koniec_procedury:
 	; ORYGINALNEJ PROCEDURY JEGO OBSŁUGI Z PIERWOTNĄ CZĘSTOTLIWOŚCIĄ,
 	; JAKO, ŻE PROCEDURA TA REALIZUJE WAŻNE FUNKCJE SYSTEMOWE I MUSI
 	; BYĆ WYKONYWANA W ŚCISŁYCH ODSTĘPACH CZASU.
-	Ustaw_zegar wolno
+	;Ustaw_zegar wolno
 	call OrgProcZeg
 
 	pop ax
@@ -295,26 +296,29 @@ Start:
 
 	; KLAWISZ 1
 	WczytajZnak
-	WysNap txtWcisnieto1
+	Wyczysc_ekran
 	Podmien_adres_procedury
-		
+	WysNap txtWcisnieto1
+	
 	; KLAWISZ 2
 	WczytajZnak
+	mov czestotliwosc, szybko
 	WysNap txtWcisnieto2
-	aktualna_czestotliwosc szybko
 	
 	; KLAWISZ 3
 	WczytajZnak
+	mov czestotliwosc, wolno
 	WysNap txtWcisnieto3
-	aktualna_czestotliwosc wolno
 
 	; KLAWISZ 4
 	WczytajZnak
-	WysNap txtWcisnieto4
 	Przywroc_Wektor
+	WysNap txtWcisnieto4
 	
 	; KLAWISZ 5
+;	WysNap txtPrompt5
 	WczytajZnak
+	Wyczysc_ekran
 	WysNap txtWcisnieto5
 	Koniec
 
