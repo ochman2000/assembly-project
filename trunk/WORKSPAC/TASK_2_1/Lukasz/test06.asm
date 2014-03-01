@@ -14,7 +14,7 @@
 
 ; MACRO DO WYŚWIETLANIA NAPISÓW
 
-WysNap	MACRO	Napis
+WysNap MACRO Napis
 
 	mov 	dx, offset Napis
 	mov 	ah, 09h
@@ -42,7 +42,7 @@ wyczysc:
 		
 ;===============================================================;
 
-WczytajZnak     MACRO
+WczytajZnak MACRO
     
 	mov     ah, 08h
 	int     21h
@@ -119,32 +119,15 @@ Podmien_adres_procedury MACRO
 ; MACRO ZMIENIAJĄCE CZĘSTOTLIWOŚĆ GENEROWANIA PRZERWANIA ZEGAROWEGO
 ; UKŁADU CZASOWEGO RTC (INTEL 8253/8254) POPRZEZ PORTY 40h I 43h
 
-Przyspiesz_zegar MACRO
-	
-	cli
-	mov	al, 36h				;al=00110110
-	out	43h, al
-	mov	ax, Czestotliwosc
-	out	40h, al				;wyślij młodszy bajt wartości początkowej ax
-	mov	al, ah			
-	out	40h, al				;wyślij starszy bajt wartości początkowej ax
-	sti
-	
-	ENDM
-	
-;===============================================================;
-
-; MACRO ZMIENIAJĄCE CZĘSTOTLIWOŚĆ GENEROWANIA PRZERWANIA ZEGAROWEGO
-; UKŁADU CZASOWEGO RTC (INTEL 8253/8254) POPRZEZ PORTY 40h I 43h
-
-Spowolnij_zegar MACRO
+Ustaw_zegar MACRO ms
 
 	cli
-	mov	al, 36h				;al=00110110
+	mov	al, 36h				; AL=00110110
 	out	43h, al	
-	mov	ax, 0
-	out	40h, al	
-	out	40h, al
+	mov	ax, ms				
+	out	40h, al				; WYŚLIJ MŁODSZY BAJT AX (AL)
+	mov	al, ah	
+	out	40h, al				; WYŚLIJ STARSZY BAJT AX (AH)
 	sti
 	
 	ENDM
@@ -167,10 +150,10 @@ Przywroc_wektor MACRO
 
 ;===============================================================;
 
-; MACRO KONFIGURUJĄCE STEROWNIK PRZERWAŃ PIC (INTEL 8259A)
+; MACRO KONFIGURUJĄCE PROGRAMOWALNY STEROWNIK PRZERWAŃ PIC (INTEL 8259A)
 ; PRZESYŁA OPERACYJNE SŁOWO ROZKAZOWE OCW2
 
-ZmienOCW2	MACRO	priorytet
+ZmienOCW2 MACRO	priorytet
 		
 	cli						; CLEAR INTERRUPT FLAG
 	mov	al, priorytet
@@ -187,7 +170,7 @@ ZmienOCW2	MACRO	priorytet
 
 ; MACRO WYWOŁUJĄCE FUNKCJĘ SYSTEMOWĄ 4C00h
 
-Koniec	MACRO
+Koniec MACRO
 
 	mov	ax, 4C00h
 	int	21h
@@ -196,34 +179,39 @@ Koniec	MACRO
 	
 ;===============================================================;
 
-Stosik	SEGMENT	STACK
+Stosik SEGMENT STACK
 
 	DB 100h DUP (?)
 
-Stosik	ENDS
+Stosik ENDS
 
 ;===============================================================;
 				
-Dane	SEGMENT
+Dane SEGMENT
 
-	Czestotliwosc	EQU	8000h 	;32768
-	OrgProcZeg 		dd	?		;OBSZAR PRZEZNACZONY NA PRZECHOWANIE PROCEDURY
-	poz				dw	40		;POZYCJA PORUSZAJĄCEJ SIĘ GWIAZDKI
-	przes			dw	0002h	;PRZESUNIĘCIE PORUSZAJĄCEJ SIĘ GWIAZDKI
-	kierunek		db	0		;KIERUNEK RUCHU GWIAZDKI (0-PRZÓD; 1-WSTECZ)
-	txtWcisnieto1	DB " Procedura obs",136,"ugi kana",136,"u IRQ 8 zmodyfikowana", 13, 10, "$"
-	txtWcisnieto2	DB " Uk",136,"ad czasowy RTC przyspieszony" ,13,10, "$"
-	txtWcisnieto3	DB " Uk",136,"ad czasowy RTC spowolniony" ,13,10, "$"
-	txtWcisnieto4	DB " Pierwotna procedura obs",136,"ugi kana",136,"u IRQ 8 przywr",162,"cona" ,13,10, "$"
-	txtWcisnieto5	DB 13,10," Do widzenia!" ,13,10, "$"
+	szybko			EQU	8000h 	; 65536/32768
+	wolno			EQU	0000h 	; 0
+	czestotliwosc	dw	0000h
+	OrgProcZeg 		dd	?		; OBSZAR PRZEZNACZONY NA PRZECHOWANIE
+								; PROCEDURY
+	poz				dw	40		; POZYCJA PORUSZAJĄCEJ SIĘ GWIAZDKI
+	przes			dw	0002h	; PRZESUNIĘCIE PORUSZAJĄCEJ SIĘ GWIAZDKI
+	kierunek		db	0		; KIERUNEK RUCHU GWIAZDKI
+								; (0-PRZÓD; 1-WSTECZ)
+	txtPowitanie	DB 	" Witaj w programie demonstruj",165,"cym dzia",136,	"anie",13,10," programowalnego sterownika przerwa",228," 8259A oraz",13,10," programowalnego zegara przyrostowego 8253.",13,10,13,10," Wci",152,"nij dowolny klawisz, aby kontynuowa",134,"...",13,10,13,10, "$"
+	txtWcisnieto1	DB 	" Procedura obs",136,"ugi kana",136,"u IRQ 8 zmodyfikowana.", 13, 10, "$"
+	txtWcisnieto2	DB 	" Uk",136,"ad czasowy RTC przyspieszony." ,13,10, "$"
+	txtWcisnieto3	DB 	" Uk",136,"ad czasowy RTC spowolniony." ,13,10, "$"
+	txtWcisnieto4	DB 	" Pierwotna procedura obs",136,"ugi kana",136,"u IRQ 8 przywr",162,"cona." ,13,10, "$"
+	txtWcisnieto5	DB 	13,10," Do widzenia!" ,13,10, "$"
 
-Dane	ENDS
+Dane ENDS
 
 ;===============================================================;
 
-Kod		SEGMENT
+Kod SEGMENT
 
-ASSUME  CS:Kod, DS:Dane, SS:Stosik
+ASSUME CS:Kod, DS:Dane, SS:Stosik
 
 MojaProcZeg	PROC FAR
 	sti
@@ -234,6 +222,7 @@ MojaProcZeg	PROC FAR
 	push ax
 
 	Ustaw_DS Dane
+	Ustaw_zegar czestotliwosc
 
 	mov bx, 0B800h 					; B800 - ADRES POCZĄTKU EKRANU
    	mov es, bx
@@ -280,6 +269,12 @@ odwroc_do_tylu:
 
 koniec_procedury:
 	pushf
+	; ZGODNIE Z WYTYCZNYMI PROJEKTU:
+	; PRZY PRZEJMOWANIU PRZERWANIA NALEŻY ZAPEWNIĆ WYWOŁYWANIE
+	; ORYGINALNEJ PROCEDURY JEGO OBSŁUGI Z PIERWOTNĄ CZĘSTOTLIWOŚCIĄ,
+	; JAKO, ŻE PROCEDURA TA REALIZUJE WAŻNE FUNKCJE SYSTEMOWE I MUSI
+	; BYĆ WYKONYWANA W ŚCISŁYCH ODSTĘPACH CZASU.
+	Ustaw_zegar wolno
 	call OrgProcZeg
 
 	pop ax
@@ -294,6 +289,7 @@ MojaProcZeg ENDP
 Start:
 	Ustaw_DS Dane
 	Wyczysc_ekran
+	WysNap txtPowitanie
 	Znajdz_przerwanie_zegara
 	Zapisz_przerwanie_zegara
 
@@ -305,12 +301,12 @@ Start:
 	; KLAWISZ 2
 	WczytajZnak
 	WysNap txtWcisnieto2
-	Przyspiesz_zegar
-
+	aktualna_czestotliwosc szybko
+	
 	; KLAWISZ 3
 	WczytajZnak
 	WysNap txtWcisnieto3
-	Spowolnij_zegar
+	aktualna_czestotliwosc wolno
 
 	; KLAWISZ 4
 	WczytajZnak
@@ -322,9 +318,8 @@ Start:
 	WysNap txtWcisnieto5
 	Koniec
 
-Kod            ENDS
+Kod ENDS
 
 ;===============================================================;
 
-END     Start
-
+END Start
