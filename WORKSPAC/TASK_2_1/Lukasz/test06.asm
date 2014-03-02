@@ -62,8 +62,8 @@ Ustaw_rejestr_ds MACRO adres
 ;===============================================================;
 
 ; MACRO ZWRACAJĄCE ADRES PROCEDURY ODPOWIEDZIALNEJ ZA
-; KONTROLĘ URZĄDZENIA NA KANALE IRQ 8
-; W TYM PRZYPADKU JEST TO UKŁAD CZASOWY RTC INTEL 8253/8254
+; KONTROLĘ URZĄDZENIA NA KANALE IRQ 0
+; W TYM PRZYPADKU JEST TO PIT INTEL 8253/8254
 
 Znajdz_przerwanie_zegara MACRO
 	
@@ -71,7 +71,7 @@ Znajdz_przerwanie_zegara MACRO
 	; ENTRY: AL = INTERRUPT NUMBER
 	; RETURN: ES:BX -> CURRENT INTERRUPT HANDLER
 	mov ah, 35h	
-	mov al, 08h ; IRQ 8
+	mov al, 08h ; IRQ 0
 	int 21h
 	
 	ENDM
@@ -116,7 +116,7 @@ Podmien_adres_procedury MACRO
 ;===============================================================;
 
 ; MACRO ZMIENIAJĄCE CZĘSTOTLIWOŚĆ GENEROWANIA PRZERWANIA ZEGAROWEGO
-; UKŁADU CZASOWEGO RTC (INTEL 8253/8254) POPRZEZ PORTY 40h I 43h
+; UKŁADU CZASOWEGO PIT (INTEL 8253/8254) POPRZEZ PORTY 40h I 43h
 
 Ustaw_zegar MACRO tempo
 
@@ -140,7 +140,7 @@ Przywroc_wektor MACRO
 
 	push ds
 	mov	ah, 25h			
-	mov	al, 08h				; IRQ 8
+	mov	al, 08h				; IRQ 0
 	lds	dx, OrgProcZeg
 	int	21h
 	pop ds
@@ -189,8 +189,10 @@ Stosik ENDS
 Dane SEGMENT
 	
 	; CONSTANTS
-	szybko			EQU	8000h 	; 65536/32768
-	wolno			EQU	0000h 	; 0
+	wolno			EQU	0000h 	; 1/1,193181*65536 = 54925 = 54,925ms
+	szybko			EQU	8000h 	; 1/1,193181*32768 = 27462 = 27,462ms
+	szybciej		EQU 4000h	; 1/1,193181*16384 = 13731 = 13,731ms
+	najszybciej		EQU 2000h	; 1/1,193181* 8196 = 68690 =  6,869ms
 	
 	; GLOBAL VARIABLES
 	czestotliwosc	dw	0000h
@@ -201,10 +203,10 @@ Dane SEGMENT
 	kierunek		db	0		; KIERUNEK RUCHU GWIAZDKI
 								; (0-PRZÓD; 1-WSTECZ)
 	txtPowitanie	DB 	" Witaj w programie demonstruj",165,"cym dzia",136,	"anie",13,10," programowalnego sterownika przerwa",228," 8259A oraz",13,10," programowalnego zegara przyrostowego 8253.",13,10,13,10," Wci",152,"nij dowolny klawisz, aby kontynuowa",134,"...",13,10,13,10, "$"
-	txtWcisnieto1	DB 	" Procedura obs",136,"ugi kana",136,"u IRQ 8 zmodyfikowana.", 13, 10, "$"
-	txtWcisnieto2	DB 	" Uk",136,"ad czasowy RTC przyspieszony." ,13,10, "$"
-	txtWcisnieto3	DB 	" Uk",136,"ad czasowy RTC spowolniony." ,13,10, "$"
-	txtWcisnieto4	DB 	" Pierwotna procedura obs",136,"ugi kana",136,"u IRQ 8 przywr",162,"cona." ,13,10, "$"
+	txtWcisnieto1	DB 	" Procedura obs",136,"ugi kana",136,"u IRQ0 przychwycona i zmodyfikowana.", 13, 10, "$"
+	txtWcisnieto2	DB 	" Programowalny zegar przyrostowy 8253 przyspieszony. (145,6Hz)" ,13,10, "$"
+	txtWcisnieto3	DB 	" Programowalny zegar przyrostowy 8253 spowolniony. (18,2Hz)" ,13,10, "$"
+	txtWcisnieto4	DB 	" Pierwotna procedura obs",136,"ugi kana",136,"u IRQ0 przywr",162,"cona." ,13,10, "$"
 	txtPrompt5	DB 	13,10," Wci",152,"nij dowolny klawisz, aby zako",228,"czy",134,"...", "$"
 	txtWcisnieto5	DB 	13,10," Do widzenia!" ,13,10, "$"
 
@@ -277,20 +279,29 @@ koniec_procedury:
 	; PRZY PRZEJMOWANIU PRZERWANIA NALEŻY ZAPEWNIĆ WYWOŁYWANIE ORYGINALNEJ
 	; PROCEDURY JEGO OBSŁUGI Z PIERWOTNĄ CZĘSTOTLIWOŚCIĄ, JAKO, ŻE PROCEDU- ; RA TA REALIZUJE WAŻNE FUNKCJE SYSTEMOWE I MUSI BYĆ WYKONYWANA W ŚCIS-
 	; ŁYCH ODSTĘPACH CZASU. NIESTETY ODKOMENTOWANIE PONIŻSZEJ LINI SPRAWIA,
-	; ŻE ZGŁASZANIE PRZERWANIA ZEGAROWEGO NASTĘPUJE CO ZALEDWIE 55ms. JEST
+	; ŻE ZGŁASZANIE PRZERWANIA ZEGAROWEGO NASTĘPUJE ZALEDWIE CO 55ms. JEST
 	; TO ZNACZNIEJ MNIEJ NIŻ CZAS WYKONANIA WSZYSTKICH INSTRUKCJI TEGO PRO-
-	; GRAMU. Z TEGO POWODU USTAWIENIE CZĘSTOTLIWOŚCI RTC W POCZĄTKOWEJ CZĘ-
-	; ŚCI KODU JEST NADPISYWANE PRZEZ KOLEJNE INSTRUKCJE. ZATEM POD UWAGĘ 
-	; BRANA JEST TA OSTATNIA INSTRUKCJA, A POPRZEDZAJĄCE SĄ IGNOROWANE.
+	; GRAMU. Z TEGO POWODU USTAWIENIE CZĘSTOTLIWOŚCI LICZNIKA W POCZĄTKOWEJ ; CZĘŚCI KODU JEST NADPISYWANE PRZEZ KOLEJNE INSTRUKCJE. ZATEM POD UWA-
+	; GĘ BRANA JEST TA OSTATNIA INSTRUKCJA, A POPRZEDZAJĄCE SĄ IGNOROWANE.
 	; INNYMI SŁOWY: WSZYSTKIE PRÓBY PRZYSPIESZENIA ZEGARA SĄ NADPISYWANE
 	; PONIŻSZĄ LINIĄ KODU, ZANIM WEJDĄ W ŻYCIE.
-	;Ustaw_zegar wolno 				; USTAW CZĘSTOTLIWOŚĆ ZEGARA
+	Ustaw_zegar wolno 				; USTAW CZĘSTOTLIWOŚĆ ZEGARA
 									; UŻYWAJĄC WARTOŚCI STAŁEJ wolno
 									; Z ZADEKLAROWANĄ WARTOŚCIĄ=0
+									
+	; ROZWIĄZANIEM TEGO PROBLEMU BYŁOBY ZASTOSOWANIE PRZERWANIA SYSTEMOWEGO
+	; INT 08h - TIMER INTERRUPT, INT 28h - DOS IDLE INTERRUPT LUB PO PROSTU
+	; ZASTOSOWANIE PĘTLI, OBCIĄŻAJĄCEJ PROCESOR. TAKI FRAGMENT KODU NALEŻA-
+	; ŁOBY UMIEŚCIĆ NA SAMYM POCZĄTKU MOJEJ PROCEDURY.
 	
 	pushf
 	call OrgProcZeg
-
+	
+	; TAKI "WORKAROUND" ŻEBY CZĘŚCIOWO ROZWIĄZAĆ POWYŻEJ OPISANY PROBLEM
+	; TERAZ OSTANIĄ LINIĄ KODU JEST POŻĄDANA CZĘSTOTLIWOŚĆ :)
+	Ustaw_zegar	czestotliwosc;		; USTAW CZĘSTOTLIWOŚĆ ZEGARA
+									; UŻYWAJĄC WARTOŚCI ZMIENNEJ
+									; GLOBALNEJ czestotliwosc
 	pop ax
 	pop si
 	pop es
@@ -314,8 +325,13 @@ Start:
 	WysNap txtWcisnieto1
 	
 	; KLAWISZ 2
+	;WczytajZnak
+	;mov czestotliwosc, szybko
+	;WysNap txtWcisnieto2
+	
+	; KLAWISZ 2 BIS
 	WczytajZnak
-	mov czestotliwosc, szybko
+	mov czestotliwosc, najszybciej
 	WysNap txtWcisnieto2
 	
 	; KLAWISZ 3
