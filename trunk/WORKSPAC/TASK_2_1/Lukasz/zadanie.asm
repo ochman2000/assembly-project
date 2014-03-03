@@ -274,18 +274,17 @@ Dane SEGMENT
 	kierunek		db	0		; KIERUNEK RUCHU GWIAZDKI
 								; (0-PRZÓD; 1-WSTECZ)
 	txtPowitanie	DB 	" Witaj w programie demonstruj",165,"cym dzia",136,	"anie",13,10," programowalnego sterownika przerwa",228," 8259A oraz",13,10," programowalnego zegara przyrostowego 8253.",13,10,13,10," Wci",152,"nij dowolny klawisz, aby kontynuowa",134,"...",13,10,13,10, "$"
-	txtWcisnieto1	DB 	" Procedura obs",136,"ugi kana",136,"u IRQ0 przychwycona i zmodyfikowana.", 13, 10, "$"
-	txtWcisnieto2	DB 	" Cz",169,"stotliwo",134,152," generowania przerwania zegarowego zwi",169,"kszona do 145,6Hz" ,13,10, "$"
-	txtWcisnieto3	DB 	" Cz",169,"stotliwo",134,152," generowania przerwania zegarowego zmniejszona do 18,21Hz" ,13,10, "$"
-	txtWcisnieto4	DB 	" Pierwotna procedura obs",136,"ugi kana",136,"u IRQ0 przywr",162,"cona." ,13,10, "$"
-	txtWcisnieto5	DB 	" Procedura obs",136,"ugi kana",136,"u IRQ1 przychwycona i zmodyfikowana.", 13, 10, "$"
-	txtWcisnieto6	DB 	" Ustawiono najwyższy priorytet dla klawiatury.", 13, 10, "$"
-	txtWcisnieto7	DB 	" Przerwanie klawiatury.", 13, 10, "$"
-	txtWcisnieto8	DB 	" Ustawiono najwyższy priorytet dla zegara.", 13, 10, "$"
-	txtWcisnieto9	DB 	" Pierwotna procedura obs",136,"ugi kana",136,"u IRQ0 przywr",162,"cona." ,13,10, "$"
-	txtWcisnieto10	DB 	" Pierwotna procedura obs",136,"ugi kana",136,"u IRQ1 przywr",162,"cona." ,13,10, "$"
+	txtWcisnieto1	DB 	" Procedura obs",136,"ugi kana",136,"u IRQ0 przechwycona i zmodyfikowana.", 13, 10, "$"
+	txtWcisnieto2	DB 	" Cz",169,"stotliwo",152,134," generowania przerwania zegarowego zwi",169,"kszona do 145,6Hz" ,13,10, "$"
+	txtWcisnieto3	DB 	" Cz",169,"stotliwo",152,134," generowania przerwania zegarowego zmniejszona do 18,21Hz" ,13,10, "$"
+	txtWcisnieto4	DB 	" Procedura obs",136,"ugi kana",136,"u IRQ1 przechwycona i zmodyfikowana.", 13, 10, "$"
+	txtWcisnieto5	DB 	" Ustawiono najwy",190,"szy priorytet dla klawiatury.", 13, 10, "$"
+	txtWcisnieto6	DB 	" Przerwanie klawiatury.", 13, 10, "$"
+	txtWcisnieto7	DB 	" Ustawiono najwy",190,"szy priorytet dla zegara.", 13, 10, "$"
+	txtWcisnieto8	DB 	" Pierwotna procedura obs",136,"ugi kana",136,"u IRQ0 przywr",162,"cona." ,13,10, "$"
+	txtWcisnieto09	DB 	" Pierwotna procedura obs",136,"ugi kana",136,"u IRQ1 przywr",162,"cona." ,13,10, "$"
 	txtPrompt5	DB 	13,10," Wci",152,"nij dowolny klawisz, aby zako",228,"czy",134,"...", "$"
-	txtWcisnieto11	DB 	13,10," Do widzenia!" ,13,10, "$"
+	txtWcisnieto10	DB 	13,10," Do widzenia!" ,13,10, "$"
 
 Dane ENDS
 
@@ -373,7 +372,8 @@ koniec_procedury:
 	
 	pushf
 	call Oryg_Vect_08h
-EOI: 
+
+	; END OF INTERRUPT (EOI)
 	mov al, 01100000b
 	out 20h, al
 	
@@ -401,25 +401,22 @@ New_Handler_09h	PROC FAR
 	push ax
 
 	Ustaw_rejestr_ds Dane
-	Ustaw_zegar	czestotliwosc;		; USTAW CZĘSTOTLIWOŚĆ ZEGARA
-									; UŻYWAJĄC WARTOŚCI ZMIENNEJ
-									; GLOBALNEJ czestotliwosc
 
 	mov bx, 0B800h 					; B800 - ADRES POCZĄTKU EKRANU
    	mov es, bx
 		
 	cmp kierunek, 0
 	je k_do_przodu					; TRUE  - PRZÓD
-	jmp k_do_tylu						; FALSE - WSTECZ
+	jmp k_do_tylu					; FALSE - WSTECZ
 		
 k_do_przodu:
 	mov si, poz						; SI=0,2,4,6,8,...
 	cmp poz, 120					; SPRAWDŹ CZY NIE JEST NA KOŃCU
 	je k_odwroc_do_tylu
-	mov BYTE PTR es:[si-2], ' '
-	mov BYTE PTR es:[si-1], 00h
-	mov BYTE PTR es:[si], 15		; 15='*' W TABLICY ASCII
-	mov BYTE PTR es:[si+1], 1Eh	
+	mov BYTE PTR es:[si-2], 15
+	mov BYTE PTR es:[si-1], 02h
+	mov BYTE PTR es:[si],	15		; 15='*' W TABLICY ASCII
+	mov BYTE PTR es:[si+1], 02h	
 	mov bx, przes					; POZYCJA=POZYCJA+2
 	add poz, bx
 	jmp k_koniec_procedury
@@ -428,10 +425,10 @@ k_do_tylu:
 	mov si, poz						; SI=120,118,116,...
 	cmp poz, 40						; SPRAWDŹ CZY NIE JEST NA POCZĄTKU
 	je k_odwroc_do_przodu
-	mov BYTE PTR es:[si+2], ' '
-	mov BYTE PTR es:[si+3], 00h
-	mov BYTE PTR es:[si], 15
-	mov BYTE PTR es:[si+1], 1Eh
+	mov BYTE PTR es:[si],	15
+	mov BYTE PTR es:[si+1], 02h
+	mov BYTE PTR es:[si+2], 15
+	mov BYTE PTR es:[si+3], 02h
 	mov bx, przes
 	sub poz, bx
 	jmp k_koniec_procedury
@@ -449,34 +446,13 @@ k_odwroc_do_tylu:
 	jmp k_koniec_procedury
 
 k_koniec_procedury:
-	; ZGODNIE Z WYTYCZNYMI PROJEKTU:
-	; PRZY PRZEJMOWANIU PRZERWANIA NALEŻY ZAPEWNIĆ WYWOŁYWANIE ORYGINALNEJ
-	; PROCEDURY JEGO OBSŁUGI Z PIERWOTNĄ CZĘSTOTLIWOŚCIĄ, JAKO, ŻE PROCEDU- ; RA TA REALIZUJE WAŻNE FUNKCJE SYSTEMOWE I MUSI BYĆ WYKONYWANA W ŚCIS-
-	; ŁYCH ODSTĘPACH CZASU. NIESTETY ODKOMENTOWANIE PONIŻSZEJ LINI SPRAWIA,
-	; ŻE ZGŁASZANIE PRZERWANIA ZEGAROWEGO NASTĘPUJE ZALEDWIE CO 55ms. JEST
-	; TO ZNACZNIEJ MNIEJ NIŻ CZAS WYKONANIA WSZYSTKICH INSTRUKCJI TEGO PRO-
-	; GRAMU. Z TEGO POWODU USTAWIENIE CZĘSTOTLIWOŚCI LICZNIKA W POCZĄTKOWEJ ; CZĘŚCI KODU JEST NADPISYWANE PRZEZ KOLEJNE INSTRUKCJE. ZATEM POD UWA-
-	; GĘ BRANA JEST WYŁĄCZNIE OSTATNIA INSTRUKCJA, A POPRZEDZAJĄCE SĄ IGNO-
-	; ROWANE. INNYMI SŁOWY: WSZYSTKIE PRÓBY PRZYSPIESZENIA ZEGARA SĄ NADPI-
-	; SYWANE PONIŻSZĄ LINIĄ KODU, ZANIM WEJDĄ W ŻYCIE.
-	Ustaw_zegar wolno 				; USTAW CZĘSTOTLIWOŚĆ ZEGARA
-									; UŻYWAJĄC WARTOŚCI STAŁEJ wolno
-									; Z ZADEKLAROWANĄ WARTOŚCIĄ=0
-									
-	; ROZWIĄZANIEM TEGO PROBLEMU BYŁOBY ZASTOSOWANIE PRZERWANIA SYSTEMOWEGO
-	; INT 08h - TIMER INTERRUPT, INT 28h - DOS IDLE INTERRUPT LUB PO PROSTU
-	; ZASTOSOWANIE PĘTLI, OBCIĄŻAJĄCEJ PROCESOR. TAKI FRAGMENT KODU NALEŻA-
-	; ŁOBY UMIEŚCIĆ NA SAMYM POCZĄTKU MOJEJ PROCEDURY.
-	
+
 	pushf
 	call Oryg_Vect_09h
- 
+
+	; END OF INTERRUPT (EOI)	
 	mov al, 01100000b
 	out 20h, al
-	
-	; TAKI "WORKAROUND" ŻEBY CZĘŚCIOWO ROZWIĄZAĆ POWYŻEJ OPISANY PROBLEM
-	; TERAZ OSTANIĄ LINIĄ KODU JEST POŻĄDANA CZĘSTOTLIWOŚĆ :)
-	Ustaw_zegar	czestotliwosc;
 	
 	pop ax
 	pop si
@@ -548,64 +524,54 @@ Start:
 	WczytajZnak
 	mov czestotliwosc, wolno
 	WysNap txtWcisnieto3
-
-	; KLAWISZ 4
-	; WczytajZnak
-	; Przywroc_wektor_08
-	; WysNap txtWcisnieto4
 	
-	; KLAWISZ 5
+	; KLAWISZ 4
 	WczytajZnak
 	Znajdz_przerwanie_klawiatury
 	Zapisz_przerwanie_klawiatury
 	Podmien_adres_procedury_09
+	WysNap txtWcisnieto4
+	
+	; KLAWISZ 5
+	WczytajZnak
+	ZmienOCW2 11000111b
 	WysNap txtWcisnieto5
 	
 	; KLAWISZ 6
 	WczytajZnak
+	WysNap txtWcisnieto6
 	
+	; KLAWISZ 6 BIS
+	WczytajZnak
+	WysNap txtWcisnieto6
+	
+	; KLAWISZ 6 TER
+	WczytajZnak	
+	WysNap txtWcisnieto6
+
+	; KLAWISZ 6 QUARTER
+	WczytajZnak
 	WysNap txtWcisnieto6
 	
 	; KLAWISZ 7
 	WczytajZnak
-	
-	WysNap txtWcisnieto7
-	
-	; KLAWISZ 7 BIS
-	WczytajZnak
-	
-	WysNap txtWcisnieto7
-	
-	; KLAWISZ 7 TER
-	WczytajZnak
-	
-	WysNap txtWcisnieto7
-	
-	; KLAWISZ 7 QUARTER
-	WczytajZnak
-	
+	ZmienOCW2 11000000b
 	WysNap txtWcisnieto7
 	
 	; KLAWISZ 8
 	WczytajZnak
-	
+	Przywroc_wektor_08
 	WysNap txtWcisnieto8
 	
-	; KLAWISZ 9
+	; KLAWISZ 09
 	WczytajZnak
-	Przywroc_wektor_08
-	WysNap txtWcisnieto9
+	Przywroc_wektor_09
+	WysNap txtWcisnieto09
 	
 	; KLAWISZ 10
 	WczytajZnak
-	Przywroc_wektor_09
-	WysNap txtWcisnieto10
-	
-	; KLAWISZ 11
-;	WysNap txtPrompt5
-	WczytajZnak
 	Wyczysc_ekran
-	WysNap txtWcisnieto11
+	WysNap txtWcisnieto10
 	Koniec
 
 Kod ENDS
