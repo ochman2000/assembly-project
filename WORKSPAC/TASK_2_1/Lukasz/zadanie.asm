@@ -1,8 +1,8 @@
 ;===============================================================;
 ;
-; Plik           	: test06.asm
+; Plik           	: zadanie.asm
 ; Format         	: EXE
-; Cwiczenie			: Zmiana częstotliwości zegara
+; Cwiczenie			: Sterownik przerwań 8259A i zegar/licznik 8253
 ; Autor				: Łukasz Ochmański
 ; Data zaliczenia	: 25.01.2014
 ;
@@ -94,7 +94,7 @@ Zapisz_przerwanie_zegara MACRO
 ; MACRO WYWOŁUJĄCE FUNKCJĘ SYSTEMOWĄ 25h, SŁUŻĄCĄ DO
 ; MODYFIKACJI ADRESÓW PROCEDUR W WEKTORZE PRZERWAŃ
 
-Podmien_adres_procedury MACRO
+Podmien_adres_procedury_08 MACRO
 	
 	push ds
 	
@@ -107,6 +107,60 @@ Podmien_adres_procedury MACRO
 	Ustaw_rejestr_ds Kod			; USTAW PARAMETR DS
 	mov ah, 25h						; USTAW PARAMETR AH
 	mov al, 08h						; USTAW PARAMETR AL
+	int 21h
+	
+	pop ds
+	
+	ENDM
+
+;===============================================================;
+
+; MACRO ZWRACAJĄCE ADRES PROCEDURY ODPOWIEDZIALNEJ ZA
+; KONTROLĘ URZĄDZENIA NA KANALE IRQ 1
+; W TYM PRZYPADKU JEST TO KLAWIATURA
+
+Znajdz_przerwanie_klawiatury MACRO
+	
+	; AH=35h - GET INTERRUPT VECTOR
+	; ENTRY: AL = INTERRUPT NUMBER
+	; RETURN: ES:BX -> CURRENT INTERRUPT HANDLER
+	mov ah, 35h	
+	mov al, 09h ; IRQ 1
+	int 21h
+	
+	ENDM
+	
+;===============================================================;
+
+; MACRO ZAPISUJĄCE W PAMIĘCI OPERACYJNEJ ADRES PROCEDURY
+; ZWRÓCONEJ PRZEZ FUNKCJĘ SYSTEMOWĄ 35h
+
+Zapisz_przerwanie_klawiatury MACRO
+	
+	; ZAPAMIĘTAJ ES:BX
+	mov WORD PTR Oryg_Vect_09h, bx
+	mov WORD PTR Oryg_Vect_09h +2, es
+	
+	ENDM
+	
+;===============================================================;
+
+; MACRO WYWOŁUJĄCE FUNKCJĘ SYSTEMOWĄ 25h, SŁUŻĄCĄ DO
+; MODYFIKACJI ADRESÓW PROCEDUR W WEKTORZE PRZERWAŃ
+
+Podmien_adres_procedury_09 MACRO
+	
+	push ds
+	
+	; AH=25h - SET INTERRUPT VECTOR
+	; ENTRY:
+	;	* AL = INTERRUPT NUMBER
+	;	* DS:DX -> NEW INTERRUPT HANDLER
+
+	mov dx, OFFSET New_Handler_09h	; USTAW PARAMETR DX
+	Ustaw_rejestr_ds Kod			; USTAW PARAMETR DS
+	mov ah, 25h						; USTAW PARAMETR AH
+	mov al, 09h						; USTAW PARAMETR AL
 	int 21h
 	
 	pop ds
@@ -136,12 +190,28 @@ Ustaw_zegar MACRO tempo
 ; MACRO WYWOŁUJĄCE FUNKCJĘ SYSTEMOWĄ 25h, SŁUŻĄCĄ DO
 ; MODYFIKACJI ADRESÓW PROCEDUR W WEKTORZE PRZERWAŃ
 
-Przywroc_wektor MACRO
+Przywroc_wektor_08 MACRO
 
 	push ds
 	mov	ah, 25h			
 	mov	al, 08h				; IRQ 0
 	lds	dx, Oryg_Vect_08h
+	int	21h
+	pop ds
+	
+	ENDM
+
+;===============================================================;
+
+; MACRO WYWOŁUJĄCE FUNKCJĘ SYSTEMOWĄ 25h, SŁUŻĄCĄ DO
+; MODYFIKACJI ADRESÓW PROCEDUR W WEKTORZE PRZERWAŃ
+
+Przywroc_wektor_09 MACRO
+
+	push ds
+	mov	ah, 25h			
+	mov	al, 09h				; IRQ 1
+	lds	dx, Oryg_Vect_09h
 	int	21h
 	pop ds
 	
@@ -196,19 +266,26 @@ Dane SEGMENT
 	
 	; GLOBAL VARIABLES
 	czestotliwosc	dw	0000h
+	priorytet   	db  1		; 0-KLAWIATURA; 1-ZEGAR
 	Oryg_Vect_08h 	dd	?		; OBSZAR PRZEZNACZONY NA PRZECHOWANIE
-	Oryg_Vect_09h	dw	?		; PROCEDURY
+	Oryg_Vect_09h	dd	?		; PROCEDURY
 	poz				dw	40		; POZYCJA PORUSZAJĄCEJ SIĘ GWIAZDKI
 	przes			dw	0002h	; PRZESUNIĘCIE PORUSZAJĄCEJ SIĘ GWIAZDKI
 	kierunek		db	0		; KIERUNEK RUCHU GWIAZDKI
 								; (0-PRZÓD; 1-WSTECZ)
 	txtPowitanie	DB 	" Witaj w programie demonstruj",165,"cym dzia",136,	"anie",13,10," programowalnego sterownika przerwa",228," 8259A oraz",13,10," programowalnego zegara przyrostowego 8253.",13,10,13,10," Wci",152,"nij dowolny klawisz, aby kontynuowa",134,"...",13,10,13,10, "$"
 	txtWcisnieto1	DB 	" Procedura obs",136,"ugi kana",136,"u IRQ0 przychwycona i zmodyfikowana.", 13, 10, "$"
-	txtWcisnieto2	DB 	" Programowalny zegar przyrostowy 8253 przyspieszony. (145,6Hz)" ,13,10, "$"
-	txtWcisnieto3	DB 	" Programowalny zegar przyrostowy 8253 spowolniony. (18,2Hz)" ,13,10, "$"
+	txtWcisnieto2	DB 	" Cz",169,"stotliwo",134,152," generowania przerwania zegarowego zwi",169,"kszona do 145,6Hz" ,13,10, "$"
+	txtWcisnieto3	DB 	" Cz",169,"stotliwo",134,152," generowania przerwania zegarowego zmniejszona do 18,21Hz" ,13,10, "$"
 	txtWcisnieto4	DB 	" Pierwotna procedura obs",136,"ugi kana",136,"u IRQ0 przywr",162,"cona." ,13,10, "$"
+	txtWcisnieto5	DB 	" Procedura obs",136,"ugi kana",136,"u IRQ1 przychwycona i zmodyfikowana.", 13, 10, "$"
+	txtWcisnieto6	DB 	" Ustawiono najwyższy priorytet dla klawiatury.", 13, 10, "$"
+	txtWcisnieto7	DB 	" Przerwanie klawiatury.", 13, 10, "$"
+	txtWcisnieto8	DB 	" Ustawiono najwyższy priorytet dla zegara.", 13, 10, "$"
+	txtWcisnieto9	DB 	" Pierwotna procedura obs",136,"ugi kana",136,"u IRQ0 przywr",162,"cona." ,13,10, "$"
+	txtWcisnieto10	DB 	" Pierwotna procedura obs",136,"ugi kana",136,"u IRQ1 przywr",162,"cona." ,13,10, "$"
 	txtPrompt5	DB 	13,10," Wci",152,"nij dowolny klawisz, aby zako",228,"czy",134,"...", "$"
-	txtWcisnieto5	DB 	13,10," Do widzenia!" ,13,10, "$"
+	txtWcisnieto11	DB 	13,10," Do widzenia!" ,13,10, "$"
 
 Dane ENDS
 
@@ -315,17 +392,151 @@ New_Handler_08h ENDP
 
 ;===============================================================;
 
+New_Handler_09h	PROC FAR
+	sti
+	push ds
+	push bx
+	push es
+	push si
+	push ax
+
+	Ustaw_rejestr_ds Dane
+	Ustaw_zegar	czestotliwosc;		; USTAW CZĘSTOTLIWOŚĆ ZEGARA
+									; UŻYWAJĄC WARTOŚCI ZMIENNEJ
+									; GLOBALNEJ czestotliwosc
+
+	mov bx, 0B800h 					; B800 - ADRES POCZĄTKU EKRANU
+   	mov es, bx
+		
+	cmp kierunek, 0
+	je k_do_przodu					; TRUE  - PRZÓD
+	jmp k_do_tylu						; FALSE - WSTECZ
+		
+k_do_przodu:
+	mov si, poz						; SI=0,2,4,6,8,...
+	cmp poz, 120					; SPRAWDŹ CZY NIE JEST NA KOŃCU
+	je k_odwroc_do_tylu
+	mov BYTE PTR es:[si-2], ' '
+	mov BYTE PTR es:[si-1], 00h
+	mov BYTE PTR es:[si], 15		; 15='*' W TABLICY ASCII
+	mov BYTE PTR es:[si+1], 1Eh	
+	mov bx, przes					; POZYCJA=POZYCJA+2
+	add poz, bx
+	jmp k_koniec_procedury
+
+k_do_tylu:
+	mov si, poz						; SI=120,118,116,...
+	cmp poz, 40						; SPRAWDŹ CZY NIE JEST NA POCZĄTKU
+	je k_odwroc_do_przodu
+	mov BYTE PTR es:[si+2], ' '
+	mov BYTE PTR es:[si+3], 00h
+	mov BYTE PTR es:[si], 15
+	mov BYTE PTR es:[si+1], 1Eh
+	mov bx, przes
+	sub poz, bx
+	jmp k_koniec_procedury
+
+k_odwroc_do_przodu:
+	mov kierunek, 0
+	mov poz, 40
+	mov si, poz
+	jmp k_koniec_procedury
+
+k_odwroc_do_tylu:
+	mov kierunek, 1
+	mov poz, 120
+	mov si, poz
+	jmp k_koniec_procedury
+
+k_koniec_procedury:
+	; ZGODNIE Z WYTYCZNYMI PROJEKTU:
+	; PRZY PRZEJMOWANIU PRZERWANIA NALEŻY ZAPEWNIĆ WYWOŁYWANIE ORYGINALNEJ
+	; PROCEDURY JEGO OBSŁUGI Z PIERWOTNĄ CZĘSTOTLIWOŚCIĄ, JAKO, ŻE PROCEDU- ; RA TA REALIZUJE WAŻNE FUNKCJE SYSTEMOWE I MUSI BYĆ WYKONYWANA W ŚCIS-
+	; ŁYCH ODSTĘPACH CZASU. NIESTETY ODKOMENTOWANIE PONIŻSZEJ LINI SPRAWIA,
+	; ŻE ZGŁASZANIE PRZERWANIA ZEGAROWEGO NASTĘPUJE ZALEDWIE CO 55ms. JEST
+	; TO ZNACZNIEJ MNIEJ NIŻ CZAS WYKONANIA WSZYSTKICH INSTRUKCJI TEGO PRO-
+	; GRAMU. Z TEGO POWODU USTAWIENIE CZĘSTOTLIWOŚCI LICZNIKA W POCZĄTKOWEJ ; CZĘŚCI KODU JEST NADPISYWANE PRZEZ KOLEJNE INSTRUKCJE. ZATEM POD UWA-
+	; GĘ BRANA JEST WYŁĄCZNIE OSTATNIA INSTRUKCJA, A POPRZEDZAJĄCE SĄ IGNO-
+	; ROWANE. INNYMI SŁOWY: WSZYSTKIE PRÓBY PRZYSPIESZENIA ZEGARA SĄ NADPI-
+	; SYWANE PONIŻSZĄ LINIĄ KODU, ZANIM WEJDĄ W ŻYCIE.
+	Ustaw_zegar wolno 				; USTAW CZĘSTOTLIWOŚĆ ZEGARA
+									; UŻYWAJĄC WARTOŚCI STAŁEJ wolno
+									; Z ZADEKLAROWANĄ WARTOŚCIĄ=0
+									
+	; ROZWIĄZANIEM TEGO PROBLEMU BYŁOBY ZASTOSOWANIE PRZERWANIA SYSTEMOWEGO
+	; INT 08h - TIMER INTERRUPT, INT 28h - DOS IDLE INTERRUPT LUB PO PROSTU
+	; ZASTOSOWANIE PĘTLI, OBCIĄŻAJĄCEJ PROCESOR. TAKI FRAGMENT KODU NALEŻA-
+	; ŁOBY UMIEŚCIĆ NA SAMYM POCZĄTKU MOJEJ PROCEDURY.
+	
+	pushf
+	call Oryg_Vect_09h
+ 
+	mov al, 01100000b
+	out 20h, al
+	
+	; TAKI "WORKAROUND" ŻEBY CZĘŚCIOWO ROZWIĄZAĆ POWYŻEJ OPISANY PROBLEM
+	; TERAZ OSTANIĄ LINIĄ KODU JEST POŻĄDANA CZĘSTOTLIWOŚĆ :)
+	Ustaw_zegar	czestotliwosc;
+	
+	pop ax
+	pop si
+	pop es
+	pop bx
+	pop ds
+	iret
+	
+New_Handler_09h ENDP
+
+;===============================================================;
+
+ZmienPrior	PROC
+		;procedura "zamienia" priorytety klawiatury i zegara poprzez wyslanie odpowiedniego slowa sterujacego do sterownika przerwan
+		; w zaleznosci od wartosci zmiennej Priorytet
+
+		cli			; IF=0 ignoruj przerwania
+		cmp	priorytet, 1h ;warunek a'la logiczny
+		je Klawiatura	
+		mov	al, 11000111b ;Rotacja okreslona
+						  ;wyslanie slowa OCW2 do sterownika przerwan
+						  ;1 - przeprowadzenie rotacjipriorytetow
+						  ;1 - uwzglednienie 3 ostatnich bitow
+						  ;0 - brak modyfikacji rejestru ISR (rejestr obslugiwanych przerwan)
+						  ;00 - bity
+						  ;111 - numer wejscia ktoremu przypisujemy najnizszy priorytet, czyli w tym wypadku wejsciu nr 7
+						  ;klawiatura otrzyma priorytet 1, zegar 0 wiec moze przerwac przerwanie klawiatury
+						  
+		out	20h, al	
+		mov priorytet, 1h
+		jmp KoniecProcedury
+
+Klawiatura:	
+		mov al, 11000000b  ; j/w tylko ze numer 000 to wskazanie wejscia 0  jako najnizszego priorytetem
+						   ; klawiatura otrzyma priorytet 0, zegar 7 wiec nie moze przerwac przerwania klawiatury
+		out	20h, al
+		mov priorytet, 0h
+
+KoniecProcedury:		
+		sti ; IF=1
+		ret
+		ENDP
+		
+;===============================================================;
+
+;===============================================================;
+
+;===============================================================;
+
 Start:
 	Ustaw_rejestr_ds Dane
 	Wyczysc_ekran
 	WysNap txtPowitanie
-	Znajdz_przerwanie_zegara
-	Zapisz_przerwanie_zegara
 
 	; KLAWISZ 1
 	WczytajZnak
 	Wyczysc_ekran
-	Podmien_adres_procedury
+	Znajdz_przerwanie_zegara
+	Zapisz_przerwanie_zegara
+	Podmien_adres_procedury_08
 	WysNap txtWcisnieto1
 	
 	; KLAWISZ 2
@@ -339,15 +550,62 @@ Start:
 	WysNap txtWcisnieto3
 
 	; KLAWISZ 4
-	WczytajZnak
-	Przywroc_Wektor
-	WysNap txtWcisnieto4
+	; WczytajZnak
+	; Przywroc_wektor_08
+	; WysNap txtWcisnieto4
 	
 	; KLAWISZ 5
+	WczytajZnak
+	Znajdz_przerwanie_klawiatury
+	Zapisz_przerwanie_klawiatury
+	Podmien_adres_procedury_09
+	WysNap txtWcisnieto5
+	
+	; KLAWISZ 6
+	WczytajZnak
+	
+	WysNap txtWcisnieto6
+	
+	; KLAWISZ 7
+	WczytajZnak
+	
+	WysNap txtWcisnieto7
+	
+	; KLAWISZ 7 BIS
+	WczytajZnak
+	
+	WysNap txtWcisnieto7
+	
+	; KLAWISZ 7 TER
+	WczytajZnak
+	
+	WysNap txtWcisnieto7
+	
+	; KLAWISZ 7 QUARTER
+	WczytajZnak
+	
+	WysNap txtWcisnieto7
+	
+	; KLAWISZ 8
+	WczytajZnak
+	
+	WysNap txtWcisnieto8
+	
+	; KLAWISZ 9
+	WczytajZnak
+	Przywroc_wektor_08
+	WysNap txtWcisnieto9
+	
+	; KLAWISZ 10
+	WczytajZnak
+	Przywroc_wektor_09
+	WysNap txtWcisnieto10
+	
+	; KLAWISZ 11
 ;	WysNap txtPrompt5
 	WczytajZnak
 	Wyczysc_ekran
-	WysNap txtWcisnieto5
+	WysNap txtWcisnieto11
 	Koniec
 
 Kod ENDS
