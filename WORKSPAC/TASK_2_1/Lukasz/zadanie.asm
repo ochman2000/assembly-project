@@ -282,7 +282,7 @@ Dane SEGMENT
 	txtWcisnieto6	DB 	" Przerwanie klawiatury.", 13, 10, "$"
 	txtWcisnieto7	DB 	" Ustawiono najwy",190,"szy priorytet dla zegara.", 13, 10, "$"
 	txtWcisnieto8	DB 	" Pierwotna procedura obs",136,"ugi kana",136,"u IRQ0 przywr",162,"cona." ,13,10, "$"
-	txtWcisnieto09	DB 	" Pierwotna procedura obs",136,"ugi kana",136,"u IRQ1 przywr",162,"cona." ,13,10, "$"
+	txtWcisnieto9	DB 	" Pierwotna procedura obs",136,"ugi kana",136,"u IRQ1 przywr",162,"cona." ,13,10, "$"
 	txtPrompt5	DB 	13,10," Wci",152,"nij dowolny klawisz, aby zako",228,"czy",134,"...", "$"
 	txtWcisnieto10	DB 	13,10," Do widzenia!" ,13,10, "$"
 
@@ -446,7 +446,7 @@ k_odwroc_do_tylu:
 	jmp k_koniec_procedury
 
 k_koniec_procedury:
-
+		
 	pushf
 	call Oryg_Vect_09h
 
@@ -463,39 +463,6 @@ k_koniec_procedury:
 	
 New_Handler_09h ENDP
 
-;===============================================================;
-
-ZmienPrior	PROC
-		;procedura "zamienia" priorytety klawiatury i zegara poprzez wyslanie odpowiedniego slowa sterujacego do sterownika przerwan
-		; w zaleznosci od wartosci zmiennej Priorytet
-
-		cli			; IF=0 ignoruj przerwania
-		cmp	priorytet, 1h ;warunek a'la logiczny
-		je Klawiatura	
-		mov	al, 11000111b ;Rotacja okreslona
-						  ;wyslanie slowa OCW2 do sterownika przerwan
-						  ;1 - przeprowadzenie rotacjipriorytetow
-						  ;1 - uwzglednienie 3 ostatnich bitow
-						  ;0 - brak modyfikacji rejestru ISR (rejestr obslugiwanych przerwan)
-						  ;00 - bity
-						  ;111 - numer wejscia ktoremu przypisujemy najnizszy priorytet, czyli w tym wypadku wejsciu nr 7
-						  ;klawiatura otrzyma priorytet 1, zegar 0 wiec moze przerwac przerwanie klawiatury
-						  
-		out	20h, al	
-		mov priorytet, 1h
-		jmp KoniecProcedury
-
-Klawiatura:	
-		mov al, 11000000b  ; j/w tylko ze numer 000 to wskazanie wejscia 0  jako najnizszego priorytetem
-						   ; klawiatura otrzyma priorytet 0, zegar 7 wiec nie moze przerwac przerwania klawiatury
-		out	20h, al
-		mov priorytet, 0h
-
-KoniecProcedury:		
-		sti ; IF=1
-		ret
-		ENDP
-		
 ;===============================================================;
 
 ;===============================================================;
@@ -542,7 +509,7 @@ Start:
 	WysNap txtWcisnieto6
 	
 	; KLAWISZ 6 BIS
-	WczytajZnak
+	WczytajZnak 
 	WysNap txtWcisnieto6
 	
 	; KLAWISZ 6 TER
@@ -558,6 +525,22 @@ Start:
 	ZmienOCW2 11000000b
 	WysNap txtWcisnieto7
 	
+	; KLAWISZ 6
+	WczytajZnak
+	WysNap txtWcisnieto6
+	
+	; KLAWISZ 6 BIS
+	WczytajZnak
+	WysNap txtWcisnieto6
+	
+	; KLAWISZ 6 TER
+	WczytajZnak	
+	WysNap txtWcisnieto6
+
+	; KLAWISZ 6 QUARTER
+	WczytajZnak
+	WysNap txtWcisnieto6
+	
 	; KLAWISZ 8
 	WczytajZnak
 	Przywroc_wektor_08
@@ -566,7 +549,7 @@ Start:
 	; KLAWISZ 09
 	WczytajZnak
 	Przywroc_wektor_09
-	WysNap txtWcisnieto09
+	WysNap txtWcisnieto9
 	
 	; KLAWISZ 10
 	WczytajZnak
