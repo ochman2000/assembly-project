@@ -446,6 +446,19 @@ k_odwroc_do_tylu:
 	jmp k_koniec_procedury
 
 k_koniec_procedury:
+
+	; IMITACJA PAUZY. PONIEWAŻ NIE CHCE MI SIĘ SZUKAĆ JAK SIĘ WYWOŁUJE
+	; FUNKCJĘ SYSTEMOWĄ INT 08h - TIMER INTERRUPT LUB INT 28h - DOS IDLE
+	; INTERRUPT, POZWOLIŁEM SOBIE NAPISAĆ PĘTLĘ, KTÓRA ZAJEŻDŻA PROCESOR
+	; PRZEZ KILKA SEKUND. W TEN SPOSÓB MOŻNA ZOBACZYĆ CZY KOD PROCURY
+	; WŁAŚNIE SIĘ WYKONUJE.
+mov ax, 2000
+PetlaZewn:
+	mov	cx, 2000
+PetlaWewn:
+	loop PetlaWewn
+	dec	ax
+	jnz	PetlaZewn
 		
 	pushf
 	call Oryg_Vect_09h
