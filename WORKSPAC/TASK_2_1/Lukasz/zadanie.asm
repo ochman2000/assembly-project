@@ -2,8 +2,8 @@
 ;
 ; Plik           	: zadanie.asm
 ; Format         	: EXE
-; Cwiczenie			: Sterownik przerwa≈Ñ 8259A i zegar/licznik 8253
-; Autor				: ≈Åukasz Ochma≈Ñski
+; èwiczenie			: Sterownik przerwa‰ 8259A i zegar/licznik 8253
+; Autor				: ùukasz Ochma‰ski
 ; Data zaliczenia	: 25.01.2014
 ;
 ;===============================================================;
@@ -12,7 +12,7 @@
 
 ;===============================================================;
 
-; MACRO DO WY≈öWIETLANIA NAPIS√ìW
+; MACRO DO WYóWIETLANIA NAPIS‡W
 
 WysNap MACRO Napis
 
@@ -24,18 +24,18 @@ WysNap MACRO Napis
 	
 ;===============================================================;
 
-; MACRO ZERUJƒÑCE WSZYSTKIE BAJTY W OBSZARZE PAMIƒòCI OPERACYJNEJ
-; ODPOWIEDZIALNEJ ZA PRZECHOWYWANIE ZAWARTO≈öCI EKRANU
+; MACRO ZERUJ§CE WSZYSTKIE BAJTY W OBSZARZE PAMI®CI OPERACYJNEJ
+; ODPOWIEDZIALNEJ ZA PRZECHOWYWANIE ZAWARTOóCI EKRANU
 Wyczysc_ekran MACRO
 LOCAL wyczysc
-	mov ax,0B800h			; ADRES POCZƒÑTKU EKRANU
+	mov ax,0B800h			; ADRES POCZ§TKU EKRANU
 	mov es,ax 
-	mov cx,25*80			; COUNTER = 25 LINII X 80 ZNAK√ìW
+	mov cx,25*80			; COUNTER = 25 LINII X 80 ZNAK‡W
 	xor bx,bx 				; BX=0
 wyczysc: 
-	mov byte ptr es:[bx],0	; USTAW WSZYSTKIE BAJTY = 0
+	mov byte ptr es:[bx],32	; USTAW WSZYSTKIE BAJTY = 0 lub 32
 	add bx,2 				; BX++
-	loop wyczysc			; URUCHOM PƒòTLƒò 2000 RAZY
+	loop wyczysc			; URUCHOM P®TL® 2000 RAZY
 		
 	ENDM
 		
@@ -61,8 +61,8 @@ Ustaw_rejestr_ds MACRO adres
 	
 ;===============================================================;
 
-; MACRO ZWRACAJƒÑCE ADRES PROCEDURY ODPOWIEDZIALNEJ ZA
-; KONTROLƒò URZƒÑDZENIA NA KANALE IRQ 0
+; MACRO ZWRACAJ§CE ADRES PROCEDURY ODPOWIEDZIALNEJ ZA
+; KONTROL® URZ®DZENIA NA KANALE IRQ 0
 ; W TYM PRZYPADKU JEST TO PIT INTEL 8253/8254
 
 Znajdz_przerwanie_zegara MACRO
@@ -78,12 +78,12 @@ Znajdz_przerwanie_zegara MACRO
 	
 ;===============================================================;
 
-; MACRO ZAPISUJƒÑCE W PAMIƒòCI OPERACYJNEJ ADRES PROCEDURY
-; ZWR√ìCONEJ PRZEZ FUNKCJƒò SYSTEMOWƒÑ 35h
+; MACRO ZAPISUJ§CE W PAMI®CI OPERACYJNEJ ADRES PROCEDURY
+; ZWR‡CONEJ PRZEZ FUNKCJ® SYSTEMOW§ 35h
 
 Zapisz_przerwanie_zegara MACRO
 	
-	; ZAPAMIƒòTAJ ES:BX
+	; ZAPAMI®TAJ ES:BX
 	mov WORD PTR Oryg_Vect_08h, bx
 	mov WORD PTR Oryg_Vect_08h +2, es
 	
@@ -91,8 +91,8 @@ Zapisz_przerwanie_zegara MACRO
 	
 ;===============================================================;
 
-; MACRO WYWO≈ÅUJƒÑCE FUNKCJƒò SYSTEMOWƒÑ 25h, S≈ÅU≈ªƒÑCƒÑ DO
-; MODYFIKACJI ADRES√ìW PROCEDUR W WEKTORZE PRZERWA≈É
+; MACRO WYWOùUJ§CE FUNKCJ® SYSTEMOW§ 25h, SùUΩ§C§ DO
+; MODYFIKACJI ADRES‡W PROCEDUR W WEKTORZE PRZERWA„
 
 Podmien_adres_procedury_08 MACRO
 	
@@ -115,8 +115,8 @@ Podmien_adres_procedury_08 MACRO
 
 ;===============================================================;
 
-; MACRO ZWRACAJƒÑCE ADRES PROCEDURY ODPOWIEDZIALNEJ ZA
-; KONTROLƒò URZƒÑDZENIA NA KANALE IRQ 1
+; MACRO ZWRACAJ§CE ADRES PROCEDURY ODPOWIEDZIALNEJ ZA
+; KONTROL® URZ§DZENIA NA KANALE IRQ 1
 ; W TYM PRZYPADKU JEST TO KLAWIATURA
 
 Znajdz_przerwanie_klawiatury MACRO
@@ -132,12 +132,12 @@ Znajdz_przerwanie_klawiatury MACRO
 	
 ;===============================================================;
 
-; MACRO ZAPISUJƒÑCE W PAMIƒòCI OPERACYJNEJ ADRES PROCEDURY
-; ZWR√ìCONEJ PRZEZ FUNKCJƒò SYSTEMOWƒÑ 35h
+; MACRO ZAPISUJ§CE W PAMI®CI OPERACYJNEJ ADRES PROCEDURY
+; ZWR‡CONEJ PRZEZ FUNKCJ® SYSTEMOW§ 35h
 
 Zapisz_przerwanie_klawiatury MACRO
 	
-	; ZAPAMIƒòTAJ ES:BX
+	; ZAPAMI®TAJ ES:BX
 	mov WORD PTR Oryg_Vect_09h, bx
 	mov WORD PTR Oryg_Vect_09h +2, es
 	
@@ -145,8 +145,8 @@ Zapisz_przerwanie_klawiatury MACRO
 	
 ;===============================================================;
 
-; MACRO WYWO≈ÅUJƒÑCE FUNKCJƒò SYSTEMOWƒÑ 25h, S≈ÅU≈ªƒÑCƒÑ DO
-; MODYFIKACJI ADRES√ìW PROCEDUR W WEKTORZE PRZERWA≈É
+; MACRO WYWOùUJ§CE FUNKCJ® SYSTEMOW§ 25h, SùUΩ§C§ DO
+; MODYFIKACJI ADRES‡W PROCEDUR W WEKTORZE PRZERWA„
 
 Podmien_adres_procedury_09 MACRO
 	
@@ -169,8 +169,8 @@ Podmien_adres_procedury_09 MACRO
 
 ;===============================================================;
 
-; MACRO ZMIENIAJƒÑCE CZƒòSTOTLIWO≈öƒÜ GENEROWANIA PRZERWANIA ZEGAROWEGO
-; UK≈ÅADU CZASOWEGO PIT (INTEL 8253/8254) POPRZEZ PORTY 40h I 43h
+; MACRO ZMIENIAJ§CE CZ®STOTLIWOóè GENEROWANIA PRZERWANIA ZEGAROWEGO
+; UKùADU CZASOWEGO PIT (INTEL 8253/8254) POPRZEZ PORTY 40h I 43h
 
 Ustaw_zegar MACRO tempo
 
@@ -178,17 +178,17 @@ Ustaw_zegar MACRO tempo
 	mov	al, 36h				; AL=00110110
 	out	43h, al	
 	mov	ax, tempo				
-	out	40h, al				; WY≈öLIJ M≈ÅODSZY BAJT AX (AL)
+	out	40h, al				; WYóLIJ MùODSZY BAJT AX (AL)
 	mov	al, ah	
-	out	40h, al				; WY≈öLIJ STARSZY BAJT AX (AH)
+	out	40h, al				; WYóLIJ STARSZY BAJT AX (AH)
 	sti
 	
 	ENDM
 
 ;===============================================================;
 
-; MACRO WYWO≈ÅUJƒÑCE FUNKCJƒò SYSTEMOWƒÑ 25h, S≈ÅU≈ªƒÑCƒÑ DO
-; MODYFIKACJI ADRES√ìW PROCEDUR W WEKTORZE PRZERWA≈É
+; MACRO WYWOùUJ§CE FUNKCJ® SYSTEMOW§ 25h, SùUΩ§C§ DO
+; MODYFIKACJI ADRES‡W PROCEDUR W WEKTORZE PRZERWA„
 
 Przywroc_wektor_08 MACRO
 
@@ -203,8 +203,8 @@ Przywroc_wektor_08 MACRO
 
 ;===============================================================;
 
-; MACRO WYWO≈ÅUJƒÑCE FUNKCJƒò SYSTEMOWƒÑ 25h, S≈ÅU≈ªƒÑCƒÑ DO
-; MODYFIKACJI ADRES√ìW PROCEDUR W WEKTORZE PRZERWA≈É
+; MACRO WYWOùUJ§CE FUNKCJ® SYSTEMOW§ 25h, SùUΩ§C§ DO
+; MODYFIKACJI ADRES‡W PROCEDUR W WEKTORZE PRZERWA„
 
 Przywroc_wektor_09 MACRO
 
@@ -219,8 +219,8 @@ Przywroc_wektor_09 MACRO
 
 ;===============================================================;
 
-; MACRO KONFIGURUJƒÑCE PROGRAMOWALNY STEROWNIK PRZERWA≈É PIC (INTEL 8259A)
-; PRZESY≈ÅA OPERACYJNE S≈ÅOWO ROZKAZOWE OCW2
+; MACRO KONFIGURUJ§CE PROGRAMOWALNY STEROWNIK PRZERWA„ PIC (INTEL 8259A)
+; PRZESYùA OPERACYJNE SùOWO ROZKAZOWE OCW2
 
 ZmienOCW2 MACRO	priorytet
 		
@@ -237,7 +237,7 @@ ZmienOCW2 MACRO	priorytet
 
 ;===============================================================;
 
-; MACRO WYWO≈ÅUJƒÑCE FUNKCJƒò SYSTEMOWƒÑ 4C00h
+; MACRO WYWOùUJ§CE FUNKCJ® SYSTEMOW§ 4C00h
 
 Koniec MACRO
 
@@ -269,21 +269,21 @@ Dane SEGMENT
 	priorytet   	db  1		; 0-KLAWIATURA; 1-ZEGAR
 	Oryg_Vect_08h 	dd	?		; OBSZAR PRZEZNACZONY NA PRZECHOWANIE
 	Oryg_Vect_09h	dd	?		; PROCEDURY
-	poz				dw	40		; POZYCJA PORUSZAJƒÑCEJ SIƒò GWIAZDKI
-	przes			dw	0002h	; PRZESUNIƒòCIE PORUSZAJƒÑCEJ SIƒò GWIAZDKI
+	poz				dw	40		; POZYCJA PORUSZAJ§CEJ SI® GWIAZDKI
+	przes			dw	0002h	; PRZESUNI®CIE PORUSZAJ§CEJ SI® GWIAZDKI
 	kierunek		db	0		; KIERUNEK RUCHU GWIAZDKI
-								; (0-PRZ√ìD; 1-WSTECZ)
-	txtPowitanie	DB 	" Witaj w programie demonstruj",165,"cym dzia",136,	"anie",13,10," programowalnego sterownika przerwa",228," 8259A oraz",13,10," programowalnego zegara przyrostowego 8253.",13,10,13,10," Wci",152,"nij dowolny klawisz, aby kontynuowa",134,"...",13,10,13,10, "$"
-	txtWcisnieto1	DB 	" Procedura obs",136,"ugi kana",136,"u IRQ0 przechwycona i zmodyfikowana.", 13, 10, "$"
-	txtWcisnieto2	DB 	" Cz",169,"stotliwo",152,134," generowania przerwania zegarowego zwi",169,"kszona do 145,6Hz" ,13,10, "$"
-	txtWcisnieto3	DB 	" Cz",169,"stotliwo",152,134," generowania przerwania zegarowego zmniejszona do 18,21Hz" ,13,10, "$"
-	txtWcisnieto4	DB 	" Procedura obs",136,"ugi kana",136,"u IRQ1 przechwycona i zmodyfikowana.", 13, 10, "$"
-	txtWcisnieto5	DB 	" Ustawiono najwy",190,"szy priorytet dla klawiatury.", 13, 10, "$"
+								; (0-PRZ‡D; 1-WSTECZ)
+	txtPowitanie	DB 	" Witaj w programie demonstruj•cym dziaàanie",13,10," programowalnego sterownika przerwa‰ 8259A oraz",13,10," programowalnego zegara przyrostowego 8253.",13,10,13,10," Wciònij dowolny klawisz, aby kontynuowaÜ...",13,10,13,10, "$"
+	txtWcisnieto1	DB 	" Procedura obsàugi kanaàu IRQ0 przechwycona i zmodyfikowana.", 13, 10, "$"
+	txtWcisnieto2	DB 	" Cz©stotliwoòÜ generowania przerwania zegarowego zwi©kszona do 145,6Hz" ,13,10, "$"
+	txtWcisnieto3	DB 	" Cz©stotliwoòÜ generowania przerwania zegarowego zmniejszona do 18,21Hz" ,13,10, "$"
+	txtWcisnieto4	DB 	" Procedura obsàugi kanaàu IRQ1 przechwycona i zmodyfikowana.", 13, 10, "$"
+	txtWcisnieto5	DB 	" Ustawiono najwyæszy priorytet dla klawiatury.", 13, 10, "$"
 	txtWcisnieto6	DB 	" Przerwanie klawiatury.", 13, 10, "$"
-	txtWcisnieto7	DB 	" Ustawiono najwy",190,"szy priorytet dla zegara.", 13, 10, "$"
-	txtWcisnieto8	DB 	" Pierwotna procedura obs",136,"ugi kana",136,"u IRQ0 przywr",162,"cona." ,13,10, "$"
-	txtWcisnieto9	DB 	" Pierwotna procedura obs",136,"ugi kana",136,"u IRQ1 przywr",162,"cona." ,13,10, "$"
-	txtPrompt5	DB 	13,10," Wci",152,"nij dowolny klawisz, aby zako",228,"czy",134,"...", "$"
+	txtWcisnieto7	DB 	" Ustawiono najwyæszy priorytet dla zegara.", 13, 10, "$"
+	txtWcisnieto8	DB 	" Pierwotna procedura obsàugi kanaàu IRQ0 przywr¢cona." ,13,10, "$"
+	txtWcisnieto9	DB 	" Pierwotna procedura obsàugi kanaàu IRQ1 przywr¢cona." ,13,10, "$"
+	txtPrompt5	DB 	13,10," Wciònij dowolny klawisz, aby zako‰czyÜ...", "$"
 	txtWcisnieto10	DB 	13,10," Do widzenia!" ,13,10, "$"
 
 Dane ENDS
@@ -303,32 +303,32 @@ New_Handler_08h	PROC FAR
 	push ax
 
 	Ustaw_rejestr_ds Dane
-	Ustaw_zegar	czestotliwosc;		; USTAW CZƒòSTOTLIWO≈öƒÜ ZEGARA
-									; U≈ªYWAJƒÑC WARTO≈öCI ZMIENNEJ
+	Ustaw_zegar	czestotliwosc		; USTAW CZ®STOTLIWOóè ZEGARA
+									; UΩYWAJ§C WARTOóCI ZMIENNEJ
 									; GLOBALNEJ czestotliwosc
 
-	mov bx, 0B800h 					; B800 - ADRES POCZƒÑTKU EKRANU
+	mov bx, 0B800h 					; B800 - ADRES POCZ§TKU EKRANU
    	mov es, bx
 		
 	cmp kierunek, 0
-	je do_przodu					; TRUE  - PRZ√ìD
+	je do_przodu					; TRUE  - PRZ‡D
 	jmp do_tylu						; FALSE - WSTECZ
 		
 do_przodu:
 	mov si, poz						; SI=0,2,4,6,8,...
-	cmp poz, 120					; SPRAWD≈π CZY NIE JEST NA KO≈ÉCU
+	cmp poz, 120					; SPRAWDç CZY NIE JEST NA KO„CU
 	je odwroc_do_tylu
 	mov BYTE PTR es:[si-2], ' '
 	mov BYTE PTR es:[si-1], 00h
 	mov BYTE PTR es:[si], 15		; 15='*' W TABLICY ASCII
-	mov BYTE PTR es:[si+1], 1Eh		; ≈ª√ì≈ÅTA LITERA NA NIEBIESKIM TLE
+	mov BYTE PTR es:[si+1], 1Eh		; Ω‡ùTA LITERA NA NIEBIESKIM TLE
 	mov bx, przes					; POZYCJA=POZYCJA+2
 	add poz, bx
 	jmp koniec_procedury
 
 do_tylu:
 	mov si, poz						; SI=120,118,116,...
-	cmp poz, 40						; SPRAWD≈π CZY NIE JEST NA POCZƒÑTKU
+	cmp poz, 40						; SPRAWDç CZY NIE JEST NA POCZ§TKU
 	je odwroc_do_przodu
 	mov BYTE PTR es:[si+2], ' '
 	mov BYTE PTR es:[si+3], 00h
@@ -352,23 +352,23 @@ odwroc_do_tylu:
 
 koniec_procedury:
 	; ZGODNIE Z WYTYCZNYMI PROJEKTU:
-	; PRZY PRZEJMOWANIU PRZERWANIA NALE≈ªY ZAPEWNIƒÜ WYWO≈ÅYWANIE ORYGINALNEJ
-	; PROCEDURY JEGO OBS≈ÅUGI Z PIERWOTNƒÑ CZƒòSTOTLIWO≈öCIƒÑ, JAKO, ≈ªE PROCEDU- ; RA TA REALIZUJE WA≈ªNE FUNKCJE SYSTEMOWE I MUSI BYƒÜ WYKONYWANA W ≈öCIS-
-	; ≈ÅYCH ODSTƒòPACH CZASU. NIESTETY ODKOMENTOWANIE PONI≈ªSZEJ LINI SPRAWIA,
-	; ≈ªE ZG≈ÅASZANIE PRZERWANIA ZEGAROWEGO NASTƒòPUJE ZALEDWIE CO 55ms. JEST
-	; TO ZNACZNIEJ MNIEJ NI≈ª CZAS WYKONANIA WSZYSTKICH INSTRUKCJI TEGO PRO-
-	; GRAMU. Z TEGO POWODU USTAWIENIE CZƒòSTOTLIWO≈öCI LICZNIKA W POCZƒÑTKOWEJ ; CZƒò≈öCI KODU JEST NADPISYWANE PRZEZ KOLEJNE INSTRUKCJE. ZATEM POD UWA-
-	; Gƒò BRANA JEST WY≈ÅƒÑCZNIE OSTATNIA INSTRUKCJA, A POPRZEDZAJƒÑCE SƒÑ IGNO-
-	; ROWANE. INNYMI S≈ÅOWY: WSZYSTKIE PR√ìBY PRZYSPIESZENIA ZEGARA SƒÑ NADPI-
-	; SYWANE PONI≈ªSZƒÑ LINIƒÑ KODU, ZANIM WEJDƒÑ W ≈ªYCIE.
-	Ustaw_zegar wolno 				; USTAW CZƒòSTOTLIWO≈öƒÜ ZEGARA
-									; U≈ªYWAJƒÑC WARTO≈öCI STA≈ÅEJ wolno
-									; Z ZADEKLAROWANƒÑ WARTO≈öCIƒÑ=0
+	; PRZY PRZEJMOWANIU PRZERWANIA NALEΩY ZAPEWNIè WYWOùYWANIE ORYGINALNEJ
+	; PROCEDURY JEGO OBSùUGI Z PIERWOTN§ CZ®STOTLIWOóCI§, JAKO, ΩE PROCEDU- ; RA TA REALIZUJE WAΩNE FUNKCJE SYSTEMOWE I MUSI BYè WYKONYWANA W óCIS-
+	; ùYCH ODST®PACH CZASU. NIESTETY ODKOMENTOWANIE PONIΩSZEJ LINI SPRAWIA,
+	; ΩE ZGùASZANIE PRZERWANIA ZEGAROWEGO NAST®PUJE ZALEDWIE CO 55ms. JEST
+	; TO ZNACZNIEJ MNIEJ NIΩ CZAS WYKONANIA WSZYSTKICH INSTRUKCJI TEGO PRO-
+	; GRAMU. Z TEGO POWODU USTAWIENIE CZ®STOTLIWOóCI LICZNIKA W POCZ§TKOWEJ ; CZ®óCI KODU JEST NADPISYWANE PRZEZ KOLEJNE INSTRUKCJE. ZATEM POD UWA-
+	; G® BRANA JEST WYù§CZNIE OSTATNIA INSTRUKCJA, A POPRZEDZAJ§CE S§ IGNO-
+	; ROWANE. INNYMI SùOWY: WSZYSTKIE PR‡BY PRZYSPIESZENIA ZEGARA S§ NADPI-
+	; SYWANE PONIΩSZ§ LINI§ KODU, ZANIM WEJD§ W ΩYCIE.
+	Ustaw_zegar wolno 				; USTAW CZ®STOTLIWOóè ZEGARA
+									; UΩYWAJ§C WARTOóCI STAùEJ wolno
+									; Z ZADEKLAROWAN§ WARTOóCI§=0
 									
-	; ROZWIƒÑZANIEM TEGO PROBLEMU BY≈ÅOBY ZASTOSOWANIE PRZERWANIA SYSTEMOWEGO
+	; ROZWI§ZANIEM TEGO PROBLEMU BYùOBY ZASTOSOWANIE PRZERWANIA SYSTEMOWEGO
 	; INT 08h - TIMER INTERRUPT, INT 28h - DOS IDLE INTERRUPT LUB PO PROSTU
-	; ZASTOSOWANIE PƒòTLI, OBCIƒÑ≈ªAJƒÑCEJ PROCESOR. TAKI FRAGMENT KODU NALE≈ªA-
-	; ≈ÅOBY UMIE≈öCIƒÜ NA SAMYM POCZƒÑTKU MOJEJ PROCEDURY.
+	; ZASTOSOWANIE P®TLI, OBCI§ΩAJ§CEJ PROCESOR. TAKI FRAGMENT KODU NALEΩA-
+	; ùOBY UMIEóCIè NA SAMYM POCZ§TKU MOJEJ PROCEDURY.
 	
 	pushf
 	call Oryg_Vect_08h
@@ -377,9 +377,9 @@ koniec_procedury:
 	mov al, 01100000b
 	out 20h, al
 	
-	; TAKI "WORKAROUND" ≈ªEBY CZƒò≈öCIOWO ROZWIƒÑZAƒÜ POWY≈ªEJ OPISANY PROBLEM
-	; TERAZ OSTANIƒÑ LINIƒÑ KODU JEST PO≈ªƒÑDANA CZƒòSTOTLIWO≈öƒÜ :)
-	Ustaw_zegar	czestotliwosc;
+	; TAKI "WORKAROUND" ΩEBY CZ®óCIOWO ROZWI§ZAè POWYΩEJ OPISANY PROBLEM
+	; TERAZ OSTANI§ LINI§ KODU JEST POΩ§DANA CZ®STOTLIWOóè :)
+	Ustaw_zegar	czestotliwosc
 	
 	pop ax
 	pop si
@@ -402,16 +402,16 @@ New_Handler_09h	PROC FAR
 
 	Ustaw_rejestr_ds Dane
 
-	mov bx, 0B800h 					; B800 - ADRES POCZƒÑTKU EKRANU
+	mov bx, 0B800h 					; B800 - ADRES POCZ§TKU EKRANU
    	mov es, bx
 		
 	cmp kierunek, 0
-	je k_do_przodu					; TRUE  - PRZ√ìD
+	je k_do_przodu					; TRUE  - PRZ‡D
 	jmp k_do_tylu					; FALSE - WSTECZ
 		
 k_do_przodu:
 	mov si, poz						; SI=0,2,4,6,8,...
-	cmp poz, 120					; SPRAWD≈π CZY NIE JEST NA KO≈ÉCU
+	cmp poz, 120					; SPRAWDç CZY NIE JEST NA KO„CU
 	je k_odwroc_do_tylu
 	mov BYTE PTR es:[si-2], 15
 	mov BYTE PTR es:[si-1], 02h
@@ -423,7 +423,7 @@ k_do_przodu:
 
 k_do_tylu:
 	mov si, poz						; SI=120,118,116,...
-	cmp poz, 40						; SPRAWD≈π CZY NIE JEST NA POCZƒÑTKU
+	cmp poz, 40						; SPRAWDç CZY NIE JEST NA POCZ§TKU
 	je k_odwroc_do_przodu
 	mov BYTE PTR es:[si],	15
 	mov BYTE PTR es:[si+1], 02h
@@ -447,14 +447,14 @@ k_odwroc_do_tylu:
 
 k_koniec_procedury:
 
-	; IMITACJA PAUZY. PONIEWA≈ª NIE CHCE MI SIƒò SZUKAƒÜ JAK SIƒò WYWO≈ÅUJE
-	; FUNKCJƒò SYSTEMOWƒÑ INT 08h - TIMER INTERRUPT LUB INT 28h - DOS IDLE
-	; INTERRUPT, POZWOLI≈ÅEM SOBIE NAPISAƒÜ PƒòTLƒò, KT√ìRA ZAJE≈ªD≈ªA PROCESOR
-	; PRZEZ KILKA SEKUND. W TEN SPOS√ìB MO≈ªNA ZOBACZYƒÜ CZY KOD PROCURY
-	; W≈ÅA≈öNIE SIƒò WYKONUJE.
-mov ax, 2000
+	; IMITACJA PAUZY. PONIEWAΩ NIE CHCE MI SI® SZUKAè JAK SI® WYWOùUJE
+	; FUNKCJ® SYSTEMOW§ INT 08h - TIMER INTERRUPT LUB INT 28h - DOS IDLE
+	; INTERRUPT, POZWOLIùEM SOBIE NAPISAè P®TL®, KT‡RA ZAJEΩDΩA PROCESOR
+	; PRZEZ KILKA SEKUND. W TEN SPOS‡B MOΩNA ZOBACZYè CZY KOD PROCURY
+	; WùAóNIE SI® WYKONUJE.
+mov ax, 4000
 PetlaZewn:
-	mov	cx, 2000
+	mov	cx, 4000
 PetlaWewn:
 	loop PetlaWewn
 	dec	ax
@@ -514,7 +514,7 @@ Start:
 	
 	; KLAWISZ 5
 	WczytajZnak
-	ZmienOCW2 11000111b
+	ZmienOCW2 11000000b
 	WysNap txtWcisnieto5
 	
 	; KLAWISZ 6
@@ -535,7 +535,7 @@ Start:
 	
 	; KLAWISZ 7
 	WczytajZnak
-	ZmienOCW2 11000000b
+	ZmienOCW2 11000111b
 	WysNap txtWcisnieto7
 	
 	; KLAWISZ 6
